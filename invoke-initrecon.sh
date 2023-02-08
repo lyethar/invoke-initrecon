@@ -47,6 +47,14 @@ parse {
 	cat outputFile.gnmap | grep "2049/open" | cut -d" " -f 2 > targets_nfs.txt
 
 	cat outputFile.gnmap | grep "6379/open" | cut -d" " -f 2 > targets_redis.txt
+
+	cat outputFile.gnmap | grep "636/open" | cut -d" " -f 2 > targets_ldap.txt
+
+	cat outputFile.gnmap | grep "25/open" | cut -d" " -f 2 > targets_smtp.txt
+
+	cat outputFile.gnmap | grep "88/open" | cut -d" " -f 2 > targets_kerberos.txt
+	
+	
 }
 
 ping-sweep{
@@ -65,6 +73,7 @@ partial-tcp {
 	echo "Performing TCP Scan"
 
 	sudo nmap -sV -T2 -iL reachable_2023 -oA outputFile
+	
 }
 
 full-tcp{
@@ -87,6 +96,18 @@ smb-enum{
 	mkdir SMB
 	cp targets_smb.txt SMB
 	cd SMB
+	echo "Enumerating SMB using Metasploit Resource file"
+	mkdir MSF
+	msfconsole -r ../../../.msf_enumeration-smb.rc
+	echo 
+	echo  
+	echo -n "Results are written to results.txt file."
+	sleep 3
+	cat *.txt | grep + > smb_results.txt
+	echo
+	echo  "Done. Check smb_results.txt file ✅"
+	
+	cd ..
 	echo "Enumerating SMB"
 	nmap --max-retries 3 --max-scan-delay 20 --script="safe or smb-enum-*" -p 445 -iL targets_smb.txt -oA safe_smb_enum_ouput
 	nmap  --max-retries 3 --max-scan-delay 20 -p 139,445 -vv -Pn --script=smb-vuln-cve2009-3103.nse,smb-vuln-ms06-025.nse,smb-vuln-ms07-029.nse,smb-vuln-ms08-067.nse,smb-vuln-ms10-054.nse,smb-vuln-ms10-061.nse,smb-vuln-ms17-010.nse -iL targets_smb.txt -oA smb_vulnouput2
@@ -97,12 +118,89 @@ smb-enum{
 	cd ..
 	echo "Done Enumerating SMB!"
 }
+
+#zero-logon-check{
+	mkdir Zero-Logon-Check
+	cp targets_kerberos.txt Zero-Logon-Check
+	cd Zero-Logon-Check
+	echo "Enumerating SMB using Metasploit Resource file"
+	mkdir MSF
+	msfconsole -r .msf_enumeration-zerologon.rc
+	echo 
+	echo  
+	echo -n "Results are written to results.txt file."
+	sleep 3
+	cat *.txt | grep + > zerologon_results.txt
+	echo
+	echo  "Done. Check zerologon_results.txt file ✅"
+#}
+
+ipmi-enum{
+	mkdir IPMI
+	cp targets_ipmi.txt IPMI
+	cd IPMI
+	echo "Enumerating SMB using Metasploit Resource file"
+	mkdir MSF
+	msfconsole -r ../../../.msf_enumeration-ipmi.rc
+	echo 
+	echo  
+	echo -n "Results are written to results.txt file."
+	sleep 3
+	cat *.txt | grep + > ipmi_results.txt
+	echo
+	echo  "Done. Check ipmi_results.txt file ✅"
+	echo  "Remember to check for anonymous auth!"
+	cd ..
+	cd ..
+}
+
+null-sesh{
+
+	echo "Executing NULL enumeration against LDAP, RPC, and SMB"
+	echo "Creating directory"
+	mkdir NULL-enumeration
+	cp targets_smb.txt NULL-enumeration
+	cp targets_ldap.txt NULL-enumeration
+	cd NULL-enumeration
+	
+	# /enumeration/NULL-enumeration
+	echo "Downloading enumeration script"
+	wget https://raw.githubusercontent.com/s4vitar/rpcenum/master/rpcenum
+
+	chmod +x rpcenum
+
+	echo "Enumerating RPC NULL sessions"
+	for ip in $(cat targets_smb.txt)
+	do 
+		./rpcenum -e All -i $ip >> rpc-null-results.txt
+	done
+	
+	echo "Check the rpc-null-results.txt file"
+
+	echo "Enumerating LDAP NULL sessions"
+	echo -e "Specify domain in the following format DC=input,DC=input2"
+	echo "Enter first input: "
+	read domain1
+	read domain2
+
+	echo "Executing enumeration!"
+
+	for ip2 in $(cat targets_ldap.txt)
+	do 
+		ldapsearch -x -H "ldap://$ip2:389" -D '' -w '' -b "DC=$domain1,DC=$domain2" >> ldap-null-enumeration.txt
+	done
+
+	echo "Done! Use this script to further verification: https://github.com/CroweCybersecurity/ad-ldap-enum"
+	
+	cd ..
+	
+	# back to /enumeration/ 
+}
 # Making directories for future use
 
 makedir
 
 cd enumeration 
-
 
 # Run a ping sweep to identify live hosts (we can be more thorough later)
 
@@ -114,7 +212,9 @@ partial-tcp
 
 parse
 
-cd ..
+# Back to /enumeration/
+
+cd.. 
 
 # Perform a full TCP Scan
 
@@ -124,9 +224,13 @@ parse
 
 echo "File Creation Finished ✅"
 
+null-sesh
+
 ftp-enum
 
 smb-enum
+
+ipmi-enum
 
 
 echo "Script finished.. Happy hacking"
