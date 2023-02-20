@@ -5,7 +5,7 @@
 
 # Defining functions
 
-makedir {
+make-dir {
 	mkdir enumeration
 
 	mkdir exploitation
@@ -198,7 +198,7 @@ null-sesh{
 }
 # Making directories for future use
 
-makedir
+make-dir
 
 cd enumeration 
 
