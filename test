@@ -1,0 +1,1 @@
+nmap -iL scope -sn -oG - | awk '/Up$/{print $2}' > reachable_2023
