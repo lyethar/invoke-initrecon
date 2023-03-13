@@ -27,8 +27,18 @@ def parseoutput(commands):
 		os.system(y)
 	print ("Parsing output ✅")
 
-
+def downloadtooling(tools):
+	print ("Downloading tools for future use!")
+	print ("Updating system!")
+	os.system('sudo apt update')
+	os.system('cd tools')
+	for z in tools:
+		os.system('git clone ' + z)
+	os.system('cd ..')
+	print ("Done! ✅")
+	
 def invokescan(scope):
+	os.system('cd enumeration')
 	print("Executing Round 1 scans")
 	os.system("nmap -sS -Pn --top-ports 20 -iL " + scope + """ | awk '/^Nmap scan report/{ip=$NF} /open/{print ip >> "open_ports.txt"}'""")
 	print ("Done with Round 1 ✅")
@@ -36,7 +46,7 @@ def invokescan(scope):
 	os.system("sort open_ports.txt | uniq > output_file")
 	os.system("nmap -sS -sV -Pn -T3 -vv -oA outputFile -iL output_file")
 	print ("Done with Round 2 ✅")
-		
+	os.system('cd ..')	
 	
 	
 def parse_args():
@@ -52,11 +62,16 @@ def main():
 	args = parse_args()
 	scope = args.scope
 	commands = ["""cat outputFile.gnmap | grep "445/open" | cut -d" " -f 2 > targets_smb.txt""","""cat outputFile.gnmap | grep "21/open" | cut -d" " -f 2 > targets_ftp.txt""","""cat outputFile.gnmap | grep "22/open" | cut -d" " -f 2 > targets_ssh.txt""","""cat outputFile.gnmap | grep "23/open" | cut -d" " -f 2 > targets_telnet.txt""","""cat outputFile.gnmap | grep "3389/open" | cut -d" " -f 2 > targets_rdp.txt""","""cat outputFile.gnmap | grep "5900/open" | cut -d" " -f 2 > targets_vnc.txt""","""cat outputFile.gnmap | grep "1433/open" | cut -d" " -f 2 > targets_sqlserver.txt""","""cat outputFile.gnmap | grep "3306/open" | cut -d" " -f 2 > targets_mysql.txt""","""cat outputFile.gnmap | grep "5432/open" | cut -d" " -f 2 > targets_postgresql.txt""","""cat outputFile.gnmap | grep "623/open" | cut -d" " -f 2 > targets_ipmi.txt""","""cat outputFile.gnmap | grep "4786/open" | cut -d" " -f 2 > targets_ciscosmartinstall.txt""","""cat outputFile.gnmap | grep "113/open" | cut -d" " -f 2 > targets_ident.txt""","""cat outputFile.gnmap | grep "873/open" | cut -d" " -f 2 > targets_rsync.txt""", """cat outputFile.gnmap | grep "2049/open" | cut -d" " -f 2 > targets_nfs.txt""",""" cat outputFile.gnmap | grep "6379/open" | cut -d" " -f 2 > targets_redis.txt"""]
+	linwinpwn = "https://github.com/lefayjey/linWinPwn"
+	sshaudit = "https://github.com/jtesta/ssh-audit"
+	invoke_kerbrute = "https://github.com/lyethar/Invoke-Kernum"
+	tools = [linwinpwn,sshaudit,invoke_kerbrute]
 	printBanner()
 	makedir()
+	downloadtooling(tools)
 	invokescan(scope)
 	parseoutput(commands)
-		
+
 	
 if __name__ == '__main__':
 	main()
