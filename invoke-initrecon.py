@@ -31,10 +31,10 @@ def downloadtooling(tools):
 	print ("Downloading tools for future use!")
 	print ("Updating system!")
 	os.system('sudo apt update')
-	os.system('cd tools')
+	os.chdir('tools')
 	for z in tools:
 		os.system('git clone ' + z)
-	os.system('cd ..')
+	os.chdir('..')
 	print ("Done! ✅")
 	
 def invokescan(scope):
