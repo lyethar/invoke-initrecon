@@ -51,7 +51,7 @@ def invokescan(scope):
 		print(f"Scanning subnet {subnet}...")
 		result = subprocess.check_output(["nmap", "-Pn", "-sS", "--top-ports", "20", "--open", subnet], text=True)
 		
-		if "open" in results:
+		if "open" in result:
 			print(f"Open ports found in subnet {subnet}:")
 			ips_with_open_ports = [line.split()[4] for line in result.splitlines() if "Nmap scan report for" in line]
 			with open(output_file, "a") as file:
