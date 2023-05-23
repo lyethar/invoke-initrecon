@@ -37,11 +37,12 @@ def downloadtooling(tools):
 	os.chdir('..')
 	print ("Done! ✅")
 	
-def invokescan(scope):
+def invokescan(scope, exclude):
 	os.system('cd enumeration')
 	print("Executing Round 1 scans")
 	output_file = "open_ports.txt"
 	scope_file = scope
+	exclusion = exclude
 	if os.path.exists(output_file):
 		os.remove(output_file)
 	with open(scope_file, "r") as file:
@@ -49,7 +50,7 @@ def invokescan(scope):
 	
 	for subnet in subnets:
 		print(f"Scanning subnet {subnet}...")
-		result = subprocess.check_output(["nmap", "-Pn", "-sS", "--top-ports", "20", "--open", subnet], text=True)
+		result = subprocess.check_output(["nmap", "-Pn", "-sS", "--top-ports", "20", "--exclude", exclusion, "--open", subnet], text=True)
 		
 		if "open" in result:
 			print(f"Open ports found in subnet {subnet}:")
@@ -77,13 +78,15 @@ def parse_args():
 
 	parser.add_argument("-s", "--scope", type=str,
 			help="The scope.txt file.")
-			
+	parser.add_argument("-e", "--exclude", type=str,
+			   help="Exclude your own IP to avoid messing things up while relaying on internal networks!")
 	return parser.parse_args()
 
 
 def main():
 	args = parse_args()
 	scope = args.scope
+	exclude = args.exclude
 	commands = ["""cat outputFile.gnmap | grep "445/open" | cut -d" " -f 2 > targets_smb.txt""","""cat outputFile.gnmap | grep "21/open" | cut -d" " -f 2 > targets_ftp.txt""","""cat outputFile.gnmap | grep "22/open" | cut -d" " -f 2 > targets_ssh.txt""","""cat outputFile.gnmap | grep "23/open" | cut -d" " -f 2 > targets_telnet.txt""","""cat outputFile.gnmap | grep "3389/open" | cut -d" " -f 2 > targets_rdp.txt""","""cat outputFile.gnmap | grep "5900/open" | cut -d" " -f 2 > targets_vnc.txt""","""cat outputFile.gnmap | grep "1433/open" | cut -d" " -f 2 > targets_sqlserver.txt""","""cat outputFile.gnmap | grep "3306/open" | cut -d" " -f 2 > targets_mysql.txt""","""cat outputFile.gnmap | grep "5432/open" | cut -d" " -f 2 > targets_postgresql.txt""","""cat outputFile.gnmap | grep "623/open" | cut -d" " -f 2 > targets_ipmi.txt""","""cat outputFile.gnmap | grep "4786/open" | cut -d" " -f 2 > targets_ciscosmartinstall.txt""","""cat outputFile.gnmap | grep "113/open" | cut -d" " -f 2 > targets_ident.txt""","""cat outputFile.gnmap | grep "873/open" | cut -d" " -f 2 > targets_rsync.txt""", """cat outputFile.gnmap | grep "2049/open" | cut -d" " -f 2 > targets_nfs.txt""",""" cat outputFile.gnmap | grep "6379/open" | cut -d" " -f 2 > targets_redis.txt"""]
 	linwinpwn = "https://github.com/lefayjey/linWinPwn"
 	sshaudit = "https://github.com/jtesta/ssh-audit"
