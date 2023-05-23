@@ -95,7 +95,7 @@ def main():
 	printBanner()
 	makedir()
 	downloadtooling(tools)
-	invokescan(scope)
+	invokescan(scope, exclude)
 	parseoutput(commands)
 
 	
