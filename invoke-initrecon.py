@@ -38,7 +38,7 @@ def downloadtooling(tools):
 	print ("Done! ✅")
 	
 def invokescan(scope, exclude):
-	os.system('cd enumeration')
+	os.chdir('enumeration')
 	print("Executing Round 1 scans")
 	output_file = "open_ports.txt"
 	scope_file = scope
@@ -72,7 +72,7 @@ def invokescan(scope, exclude):
 	print ("Done with Round 2 ✅")
 	os.system('cd ..')	
 	
-	
+
 def parse_args():
 	parser = argparse.ArgumentParser()
 
@@ -87,11 +87,12 @@ def main():
 	args = parse_args()
 	scope = args.scope
 	exclude = args.exclude
-	commands = ["""cat outputFile.gnmap | grep "445/open" | cut -d" " -f 2 > targets_smb.txt""","""cat outputFile.gnmap | grep "21/open" | cut -d" " -f 2 > targets_ftp.txt""","""cat outputFile.gnmap | grep "22/open" | cut -d" " -f 2 > targets_ssh.txt""","""cat outputFile.gnmap | grep "23/open" | cut -d" " -f 2 > targets_telnet.txt""","""cat outputFile.gnmap | grep "3389/open" | cut -d" " -f 2 > targets_rdp.txt""","""cat outputFile.gnmap | grep "5900/open" | cut -d" " -f 2 > targets_vnc.txt""","""cat outputFile.gnmap | grep "1433/open" | cut -d" " -f 2 > targets_sqlserver.txt""","""cat outputFile.gnmap | grep "3306/open" | cut -d" " -f 2 > targets_mysql.txt""","""cat outputFile.gnmap | grep "5432/open" | cut -d" " -f 2 > targets_postgresql.txt""","""cat outputFile.gnmap | grep "623/open" | cut -d" " -f 2 > targets_ipmi.txt""","""cat outputFile.gnmap | grep "4786/open" | cut -d" " -f 2 > targets_ciscosmartinstall.txt""","""cat outputFile.gnmap | grep "113/open" | cut -d" " -f 2 > targets_ident.txt""","""cat outputFile.gnmap | grep "873/open" | cut -d" " -f 2 > targets_rsync.txt""", """cat outputFile.gnmap | grep "2049/open" | cut -d" " -f 2 > targets_nfs.txt""",""" cat outputFile.gnmap | grep "6379/open" | cut -d" " -f 2 > targets_redis.txt"""]
+	commands = ["""cat outputFile.gnmap | grep "445/open" | cut -d" " -f 2 > targets_smb.txt""","""cat outputFile.gnmap | grep "21/open" | cut -d" " -f 2 > targets_ftp.txt""","""cat outputFile.gnmap | grep "22/open" | cut -d" " -f 2 > targets_ssh.txt""","""cat outputFile.gnmap | grep "23/open" | cut -d" " -f 2 > targets_telnet.txt""","""cat outputFile.gnmap | grep "3389/open" | cut -d" " -f 2 > targets_rdp.txt""","""cat outputFile.gnmap | grep "5900/open" | cut -d" " -f 2 > targets_vnc.txt""","""cat outputFile.gnmap | grep "1433/open" | cut -d" " -f 2 > targets_sqlserver.txt""","""cat outputFile.gnmap | grep "3306/open" | cut -d" " -f 2 > targets_mysql.txt""","""cat outputFile.gnmap | grep "5432/open" | cut -d" " -f 2 > targets_postgresql.txt""","""cat outputFile.gnmap | grep "623/open" | cut -d" " -f 2 > targets_ipmi.txt""","""cat outputFile.gnmap | grep "4786/open" | cut -d" " -f 2 > targets_ciscosmartinstall.txt""","""cat outputFile.gnmap | grep "113/open" | cut -d" " -f 2 > targets_ident.txt""","""cat outputFile.gnmap | grep "873/open" | cut -d" " -f 2 > targets_rsync.txt""", """cat outputFile.gnmap | grep "2049/open" | cut -d" " -f 2 > targets_nfs.txt""",""" cat outputFile.gnmap | grep "6379/open" | cut -d" " -f 2 > targets_redis.txt""", """cat outputFile.gnmap | grep "389/open" | cut -d" " -f 2 > targets_ldap.txt"""]
 	linwinpwn = "https://github.com/lefayjey/linWinPwn"
 	sshaudit = "https://github.com/jtesta/ssh-audit"
+	rpcenum = "https://github.com/s4vitar/rpcenum"
 	invoke_kerbrute = "https://github.com/lyethar/Invoke-Kernum"
-	tools = [linwinpwn,sshaudit,invoke_kerbrute]
+	tools = [linwinpwn,sshaudit,invoke_kerbrute,rpcenum]
 	printBanner()
 	makedir()
 	downloadtooling(tools)
