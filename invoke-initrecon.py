@@ -92,7 +92,10 @@ def main():
 	sshaudit = "https://github.com/jtesta/ssh-audit"
 	rpcenum = "https://github.com/s4vitar/rpcenum"
 	invoke_kerbrute = "https://github.com/lyethar/Invoke-Kernum"
-	tools = [linwinpwn,sshaudit,invoke_kerbrute,rpcenum]
+	responder = "https://github.com/lgandx/Responder"
+	masscan = "https://github.com/robertdavidgraham/masscan"
+	sshaudit = "https://github.com/jtesta/ssh-audit"
+	tools = [linwinpwn,sshaudit,invoke_kerbrute,rpcenum,responder,masscan,sshaudit]
 	printBanner()
 	makedir()
 	downloadtooling(tools)
