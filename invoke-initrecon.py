@@ -32,6 +32,7 @@ def downloadtooling(tools):
 	print ("Updating system!")
 	os.system('sudo apt update')
 	os.chdir('tools')
+	os.system("wget https://raw.githubusercontent.com/lyethar/invoke-initrecon/main/better_default.rc")
 	for z in tools:
 		os.system('git clone ' + z)
 	os.chdir('..')
