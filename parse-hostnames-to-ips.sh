@@ -29,8 +29,8 @@ do
 
     # Check if the domain was resolvable
     if [[ -z "$ip" ]]; then
-        echo "$line : DNS Not Resolvable" >> "$output_file"
+        echo "$line" >> "$output_file"
     else
-        echo "$line : $ip" >> "$output_file"
+        echo "$ip" >> "$output_file"
     fi
 done < "$input_file"
