@@ -23,7 +23,7 @@ use exploit/windows/smb/cve_2020_0796_smbghost
 set rhosts file:/home/ptest-2023/enumeration/targets_smb.txt
 set threads 40
 spool SMBGhost_hosts.txt
-run
+check
 spool off
 
 use auxiliary/scanner/rdp/ms12_020_check
