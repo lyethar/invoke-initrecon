@@ -51,7 +51,7 @@ def invokescan(scope, exclude):
 	
 	for subnet in subnets:
 		print(f"Scanning subnet {subnet}...")
-		result = subprocess.check_output(["nmap", "-Pn", "-sS", "--top-ports", "20", "--exclude", exclusion, "--open", subnet], text=True)
+		result = subprocess.check_output(["nmap", "-n", "-Pn", "-sS", "--top-ports", "20", "--exclude", exclusion, "--open", subnet], text=True)
 		
 		if "open" in result:
 			print(f"Open ports found in subnet {subnet}:")
@@ -69,7 +69,7 @@ def invokescan(scope, exclude):
 	print ("Done with Round 1 ✅")
 	print("Executing Round 2 scans")
 	os.system("sort open_ports.txt | uniq > output_file")
-	os.system("nmap -sS -sV -Pn -T3 -vv -oA outputFile -iL output_file")
+	os.system("nmap -n -sS -sV -Pn -T3 -vv -oA outputFile -iL output_file")
 	print ("Done with Round 2 ✅")
 	os.system('cd ..')	
 	
