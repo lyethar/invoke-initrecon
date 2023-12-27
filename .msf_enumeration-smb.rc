@@ -1,10 +1,3 @@
-use auxiliary/scanner/smb/smb_version
-set rhosts file:/home/ptest-2023/enumeration/targets_smb.txt
-set threads 40
-spool smb_version.txt
-run
-spool off
-
 use auxiliary/scanner/rdp/cve_2019_0708_bluekeep
 set rhosts file:/home/ptest-2023/enumeration/targets_smb.txt
 set threads 40
