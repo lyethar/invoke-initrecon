@@ -1,0 +1,11 @@
+use auxiliary/scanner/ftp/anonymous
+set RHOSTS file:/home/ptest-2023/enumeration/targets_ftp.txt
+spool FTP_anonymous.txt
+run
+spool off
+
+use auxiliary/scanner/vnc/vnc_none_auth
+set RHOSTS file:/home/ptest-2023/enumeration/targets_vnc.txt
+spool vnc_noauth.txt
+run
+spool off
