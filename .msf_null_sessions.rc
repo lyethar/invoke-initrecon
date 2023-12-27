@@ -9,3 +9,9 @@ set RHOSTS file:/home/ptest-2023/enumeration/targets_vnc.txt
 spool vnc_noauth.txt
 run
 spool off
+
+use auxiliary/scanner/nfs/nfsmount
+set RHOSTS file:/home/ptest-2023/enumeration/targets_nfs.txt
+spool nfs_mounts.txt
+run
+spool off
