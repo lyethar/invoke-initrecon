@@ -12,6 +12,7 @@ spool off
 
 use auxiliary/scanner/nfs/nfsmount
 set RHOSTS file:/home/ptest-2023/enumeration/targets_nfs.txt
+set RPORT 2049
 spool nfs_mounts.txt
 run
 spool off
