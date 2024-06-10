@@ -51,7 +51,7 @@ def invokescan(scope, exclude):
 	
 	for subnet in subnets:
 		print(f"Scanning subnet {subnet}...")
-		result = subprocess.check_output(["nmap", "-n", "-Pn", "-sS", "--top-ports", "20", "-oA", subnet + "top-20", "--exclude", exclusion, "--open", subnet], text=True)
+		result = subprocess.check_output(["nmap", "-n", "-Pn", "-sS", "--top-ports", "20", "--exclude", exclusion, "--open", subnet], text=True)
 		
 		if "open" in result:
 			print(f"Open ports found in subnet {subnet}:")
