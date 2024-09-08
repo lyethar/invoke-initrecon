@@ -33,6 +33,9 @@ def downloadtooling(tools):
 	os.system('sudo apt update')
 	os.chdir('tools')
 	os.system("wget https://raw.githubusercontent.com/lyethar/invoke-initrecon/main/better_default.rc")
+	os.system("wget https://github.com/projectdiscovery/nuclei/releases/download/v3.3.2/nuclei_3.3.2_linux_amd64.zip")
+	os.system("unzip nuclei_3.3.2_linux_amd64.zip")
+	os.system("wget https://github.com/sensepost/gowitness/releases/download/2.5.1/gowitness-2.5.1-linux-amd64")
 	for z in tools:
 		os.system('git clone ' + z)
 	os.chdir('..')
@@ -96,7 +99,8 @@ def main():
 	responder = "https://github.com/lgandx/Responder"
 	masscan = "https://github.com/robertdavidgraham/masscan"
 	sshaudit = "https://github.com/jtesta/ssh-audit"
-	tools = [linwinpwn,sshaudit,kerbspray,rpcenum,responder,masscan,sshaudit]
+	ultimate_nmap_parser = "https://github.com/shifty0g/ultimate-nmap-parser"
+	tools = [linwinpwn,sshaudit,kerbspray,rpcenum,responder,masscan,sshaudit,ultimate_nmap_parser]
 	printBanner()
 	makedir()
 	downloadtooling(tools)
