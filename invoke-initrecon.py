@@ -26,6 +26,7 @@ def parseoutput(commands):
 	for y in commands:
 		os.system(y)
 	print ("Parsing output ✅")
+	os.system("")
 
 def downloadtooling(tools):
 	print ("Downloading tools for future use!")
@@ -36,8 +37,13 @@ def downloadtooling(tools):
 	os.system("wget https://github.com/projectdiscovery/nuclei/releases/download/v3.3.2/nuclei_3.3.2_linux_amd64.zip")
 	os.system("unzip nuclei_3.3.2_linux_amd64.zip")
 	os.system("wget https://github.com/sensepost/gowitness/releases/download/2.5.1/gowitness-2.5.1-linux-amd64")
+	os.system("chmod +x gowitness-2.5.1-linux-amd64")
+	os.system("chmod +x nuclei")
 	for z in tools:
 		os.system('git clone ' + z)
+	os.chdir('ultimate-nmap-parser')
+	os.system("chmod +x ultimate-nmap-parser.sh")
+	os.chdir('..')
 	os.chdir('..')
 	print ("Done! ✅")
 	
@@ -69,12 +75,17 @@ def invokescan(scope, exclude):
 	print("Done with Round 1 scans")
 			        
 	#os.system("nmap -sS -Pn --top-ports 20 -iL " + scope + """ | awk '/^Nmap scan report/{ip=$NF} /open/{print ip >> "open_ports.txt"}'""")
-	print ("Done with Round 1 ✅")
+	print("Done with Round 1 ✅")
 	print("Executing Round 2 scans")
 	os.system("sort open_ports.txt | uniq > output_file")
 	os.system("nmap -n -sS -sV -Pn -T3 -vv -oA outputFile -iL output_file")
-	print ("Done with Round 2 ✅")
-	os.system('cd ..')	
+	print("Done with Round 2 ✅")
+	os.chdir('..')
+	os.chdir('tools')
+	os.chdir('ultimate_nmap_parser')
+	os.system("./ultimate-nmap-parser.sh ../../enumeration/*.gnmap --all")
+	print("Done parsing output using ultimate-nmap-parser! ✅")
+	os.chdir("../../")
 	
 
 def parse_args():
