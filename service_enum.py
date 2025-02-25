@@ -19,7 +19,7 @@ def get_nmap_targets():
     
     return targets
 
-def run_nmap_scan():
+def run_nmap_service_scan():
     """
     Runs nmap scan for each parsed target file.
     """
@@ -30,7 +30,7 @@ def run_nmap_scan():
         return
 
     for port, filename in targets:
-        output_file = f"output_{port}"
+        output_file = f"service_output_{port}"
         cmd = [
             "nmap", "-Pn", "-n", "-sV", "-p", port,
             "-iL", filename, "-oA", output_file
@@ -42,5 +42,29 @@ def run_nmap_scan():
         except subprocess.CalledProcessError as e:
             print(f"Error running Nmap for {filename}: {e}")
 
+def run_nmap_script_scan():
+    """
+    Runs nmap scan for each parsed target file.
+    """
+    targets = get_nmap_targets()
+    
+    if not targets:
+        print("No valid target files found.")
+        return
+
+    for port, filename in targets:
+        output_file = f"script_output_{port}"
+        cmd = [
+            "nmap", "-Pn", "-n", "-sC", "-p", port,
+            "-iL", filename, "-oA", output_file
+        ]
+        print(f"Running: {' '.join(cmd)}")
+        
+        try:
+            subprocess.run(cmd, check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error running Nmap for {filename}: {e}")
+
 if __name__ == "__main__":
-    run_nmap_scan()
+    run_nmap_service_scan()
+    run_nmap_script_scan()
