@@ -127,392 +127,157 @@ def downloadtooling(tools):
 	
 	print_success("Tool setup complete! ✅")
 
+def is_subnet(ip_string):
+    """Check if the string represents a subnet (CIDR notation or with wildcards)"""
+    return '/' in ip_string or '*' in ip_string
+
+def analyze_scope_file(scope_file):
+    """Analyze scope file to determine if it contains subnets or individual IPs"""
+    subnets = []
+    individual_ips = []
+    
+    with open(scope_file, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:  # Skip empty lines
+                continue
+            if is_subnet(line):
+                subnets.append(line)
+            else:
+                individual_ips.append(line)
+    
+    return subnets, individual_ips
+
 def invokescan(scope, exclude):
-	os.chdir(ENUM_DIR)
-	print_info("Starting network enumeration...")
-	
-	# Initial host discovery and quick port scan
-	print_info("Phase 1: Quick host discovery...")
-	output_file = f"{ENUM_DIR}/open_ports.txt"
-	
-	if os.path.exists(output_file):
-		os.remove(output_file)
-		
-	with open(scope, "r") as file:
-		subnets = [line.strip() for line in file if line.strip()]
-	
-	for subnet in subnets:
-		print_info(f"Scanning subnet {subnet}...")
-		# Quick SYN scan with standardized parameters
-		quick_scan_cmd = ["nmap"] + NMAP_COMMON.split() + ["-sS", "--top-ports", "20", "--open", "--exclude", exclude, subnet]
-		result = subprocess.check_output(quick_scan_cmd, text=True)
-		
-		if "open" in result:
-			print_success(f"Open ports found in subnet {subnet}")
-			ips_with_open_ports = [line.split()[4] for line in result.splitlines() 
-								 if "Nmap scan report for" in line]
-			with open(output_file, "a") as file:
-				for ip in ips_with_open_ports:
-					file.write(ip + "\n")
-	
-	print_success(f"Phase 1 complete - Quick discovery finished - Check live hosts in {ENUM_DIR}/open_ports.txt")
+    os.chdir(ENUM_DIR)
+    print_info("Starting network enumeration...")
+    
+    # Analyze scope file
+    subnets, individual_ips = analyze_scope_file(scope)
+    
+    # Create output file for discovered hosts
+    output_file = f"{ENUM_DIR}/open_ports.txt"
+    if os.path.exists(output_file):
+        os.remove(output_file)
 
-	# Comprehensive port scan
-	print_info("Phase 2: Detailed port scanning...")
-	os.system(f"sort {output_file} | uniq > {ENUM_DIR}/output_file")
-	
-	print_info("Scanning hosts utilizing 88, 135, 389, 445 ...")
-	domain_ports = [88, 135, 389, 445]
- 
-	for port in domain_ports:
-		print_info(f"Scanning port {port}...")
-		os.system(f"nmap {NMAP_COMMON} -sS --open -p {port} -oA {ENUM_DIR}/scan_{port} -iL {ENUM_DIR}/output_file")
-	# Parse scan results for domain ports and output to service files
-	for port in domain_ports:
-		print_info(f"Parsing scan results for port {port}...")
-		os.system(f"""grep "{port}/open" {ENUM_DIR}/scan_{port}.gnmap | cut -d" " -f2 > {ENUM_DIR}/targets_port_{port}.txt""")
-		
-		# Map ports to services
-		if port == 88:
-			os.system(f"cp {ENUM_DIR}/targets_port_88.txt {ENUM_DIR}/targets_kerberos.txt")
-		elif port == 135:
-			os.system(f"cp {ENUM_DIR}/targets_port_135.txt {ENUM_DIR}/targets_rpc.txt")
-		elif port == 389:
-			os.system(f"cp {ENUM_DIR}/targets_port_389.txt {ENUM_DIR}/targets_ldap.txt") 
-		elif port == 445:
-			os.system(f"cp {ENUM_DIR}/targets_port_445.txt {ENUM_DIR}/targets_smb.txt")
-
-	# Retrieve domain controllers from results
-	# Compare Kerberos and LDAP hosts to identify domain controllers
-	print_info("Identifying domain controllers...")
-	dc_output = f"{ENUM_DIR}/targets_domain_controllers.txt"
-	
-	# Read hosts with Kerberos (88) and LDAP (389)
-	with open(f"{ENUM_DIR}/targets_kerberos.txt", "r") as f:
-		kerberos_hosts = set(line.strip() for line in f)
-	
-	with open(f"{ENUM_DIR}/targets_ldap.txt", "r") as f:
-		ldap_hosts = set(line.strip() for line in f)
-	
-	# Find hosts that have both ports open
-	domain_controllers = kerberos_hosts.intersection(ldap_hosts)
-	
-	# Write domain controllers to file
-	with open(dc_output, "w") as f:
-		for dc in domain_controllers:
-			f.write(f"{dc}\n")
-	
-	print_success(f"Domain controllers identified and saved to {dc_output}")
-	# Retrieve domain name from domain controllers using nmap NSE scripts
-	print_info("Retrieving domain name from domain controllers...")
-	domain_name_cmd = f"nmap {NMAP_COMMON} -p 389 --script ldap-rootdse -oA {ENUM_DIR}/domain_name_scan -iL {ENUM_DIR}/targets_domain_controllers.txt"
-	os.system(domain_name_cmd)
- 
-	# Parse the domain name from the scan results
-	domain_output = f"{ENUM_DIR}/domain_name.txt"
-	domain_name = ""
- 
-	try:
-		with open(f"{ENUM_DIR}/domain_name_scan.nmap", "r") as f:
-			for line in f:
-				if "defaultNamingContext:" in line:
-					# Extract domain name from DN format (e.g., DC=domain,DC=local)
-					domain_parts = line.split("DC=")[1:]  # Split on DC= and skip first empty part
-					domain_name = ".".join([part.split(",")[0] for part in domain_parts])
-					break
-		
-		if domain_name:
-			with open(domain_output, "w") as f:
-				f.write(domain_name + "\n")
-			print_success(f"Domain name identified: {domain_name}")
-			print_success(f"Domain name saved to {domain_output}")
-		else:
-			print_error("Could not determine domain name")
- 
-	except FileNotFoundError:
-		print_error("Domain name scan results not found")
-	except Exception as e:
-		print_error(f"Error retrieving domain name: {str(e)}")
- 
-	# Check for SMB signing on identified SMB hosts
-	print_info("Checking for SMB signing...")
-	smb_signing_cmd = f"nmap {NMAP_COMMON} -p445 --script smb2-security-mode -oA {ENUM_DIR}/smb_signing_scan -iL {ENUM_DIR}/targets_smb.txt"
-	os.system(smb_signing_cmd)
-
-	# Parse results and extract hosts without SMB signing
-	unsigned_ips = []
-	try:
-		with open(f"{ENUM_DIR}/smb_signing_scan.nmap", "r") as f:
-			current_ip = None
-			for line in f:
-				if "Nmap scan report for" in line:
-					current_ip = line.split()[-1].strip("()")
-				elif "Message signing enabled but not required" in line:
-					unsigned_ips.append(current_ip)
-
-		# Save IPs to file
-		with open(f"{ENUM_DIR}/targets_smb_unsigned.txt", "w") as f:
-			for ip in unsigned_ips:
-				f.write(f"{ip}\n")
-
-		# Get DNS names for unsigned hosts
-		dns_cmd = f"nmap {NMAP_COMMON} -sL -iL {ENUM_DIR}/targets_smb_unsigned.txt -oA {ENUM_DIR}/smb_unsigned_dns"
-		os.system(dns_cmd)
-
-		# Parse and save results with DNS names
-		with open(f"{ENUM_DIR}/smb_unsigned_dns.nmap", "r") as f, \
-			 open(f"{ENUM_DIR}/targets_smb_unsigned_dns.txt", "w") as out:
-			for line in f:
-				if "Nmap scan report for" in line:
-					parts = line.split()
-					if len(parts) > 5:  # Has DNS name
-						dns = parts[4]
-						ip = parts[5].strip("()")
-						out.write(f"{ip} - {dns}\n")
-					else:  # IP only
-						ip = parts[4]
-						out.write(f"{ip}\n")
-
-		print_success(f"Hosts without SMB signing saved to {ENUM_DIR}/targets_smb_unsigned.txt")
-		print_success(f"Hosts without SMB signing (with DNS) saved to {ENUM_DIR}/targets_smb_unsigned_dns.txt")
-
-	except FileNotFoundError:
-		print_error("SMB signing scan results not found")
-	except Exception as e:
-		print_error(f"Error processing SMB signing results: {str(e)}")
-  
-  
-	# Null Session Enumeration Against SMB & RPC 	
-	print_info("Performing null session enumeration against SMB and RPC...")
-	smb_null_hosts = []
-	rpc_null_hosts = []
-
-	try:
-		# Try netexec first for SMB
-		subprocess.run(["netexec", "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-		result = subprocess.run(f"netexec {ENUM_DIR}/targets_smb.txt -u 'a' -p '' --shares", shell=True, capture_output=True, text=True)
-		with open(f"{ENUM_DIR}/smb_null_sessions.txt", "w") as f:
-			f.write(result.stdout)
-			# Extract successful null sessions
-			for line in result.stdout.splitlines():
-				if "[+]" in line:  # netexec shows [+] for successful auth
-					ip = line.split()[0]
-					smb_null_hosts.append(ip)
-	except FileNotFoundError:
-		try:
-			# Try crackmapexec if netexec not found
-			subprocess.run(["crackmapexec", "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-			result = subprocess.run(f"crackmapexec smb {ENUM_DIR}/targets_smb.txt -u 'a' -p '' --shares", shell=True, capture_output=True, text=True)
-			with open(f"{ENUM_DIR}/smb_null_sessions.txt", "w") as f:
-				f.write(result.stdout)
-				# Extract successful null sessions
-				for line in result.stdout.splitlines():
-					if "[+]" in line:  # crackmapexec shows [+] for successful auth
-						ip = line.split()[1]
-						smb_null_hosts.append(ip)
-		except FileNotFoundError:
-			# Fall back to smbmap if neither is found
-			result = subprocess.run(f"smbmap -H {ENUM_DIR}/targets_smb.txt -u 'a' -p ''", shell=True, capture_output=True, text=True)
-			with open(f"{ENUM_DIR}/smb_null_sessions.txt", "w") as f:
-				f.write(result.stdout)
-				# Extract successful null sessions
-				for line in result.stdout.splitlines():
-					if "OK" in line:  # smbmap shows OK for successful auth
-						ip = line.split()[0]
-						smb_null_hosts.append(ip)
-
-	try:
-		# Try netexec first for RPC
-		subprocess.run(["netexec", "smb", "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-		result = subprocess.run(f"netexec smb {ENUM_DIR}/targets_rpc.txt -u '' -p '' --users", shell=True, capture_output=True, text=True)
-		with open(f"{ENUM_DIR}/rpc_enum.txt", "w") as f:
-			f.write(result.stdout)
-			# Extract successful null sessions
-			for line in result.stdout.splitlines():
-				if "[+]" in line:  # netexec shows [+] for successful auth
-					ip = line.split()[0]
-					rpc_null_hosts.append(ip)
-	except FileNotFoundError:
-		try:
-			# Try crackmapexec if netexec not found
-			subprocess.run(["crackmapexec", "smb", "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-			result = subprocess.run(f"crackmapexec smb {ENUM_DIR}/targets_rpc.txt -u '' -p '' --users", shell=True, capture_output=True, text=True)
-			with open(f"{ENUM_DIR}/rpc_enum.txt", "w") as f:
-				f.write(result.stdout)
-				# Extract successful null sessions
-				for line in result.stdout.splitlines():
-					if "[+]" in line:  # crackmapexec shows [+] for successful auth
-						ip = line.split()[1]
-						rpc_null_hosts.append(ip)
-		except FileNotFoundError:
-			try:
-				# Try rpcenum if crackmapexec not found
-				with open(f"{ENUM_DIR}/targets_rpc.txt", "r") as f:
-					for ip in f:
-						ip = ip.strip()
-						if ip:  # Skip empty lines
-							result = subprocess.run(f"{TOOLS_DIR}/general/rpcenum/rpcenum -e All -i {ip}", shell=True, capture_output=True, text=True)
-							with open(f"{ENUM_DIR}/rpc_enum.txt", "a") as out:
-								out.write(result.stdout)
-							if "successful" in result.stdout.lower():  # rpcenum shows "successful" for working null sessions
-								rpc_null_hosts.append(ip)
-			except:
-				# Fall back to rpcclient if all else fails
-				with open(f"{ENUM_DIR}/targets_rpc.txt", "r") as f:
-					for ip in f:
-						ip = ip.strip()
-						if ip:  # Skip empty lines
-							result = subprocess.run(f"rpcclient -U '' -N {ip} -c 'enumdomusers'", shell=True, capture_output=True, text=True)
-							with open(f"{ENUM_DIR}/rpc_enum.txt", "a") as out:
-								out.write(result.stdout)
-							if result.returncode == 0:  # rpcclient returns 0 on successful auth
-								rpc_null_hosts.append(ip)
-
-	# Output vulnerable hosts
-	with open(f"{ENUM_DIR}/smb_null_hosts.txt", "w") as f:
-		for host in smb_null_hosts:
-			f.write(f"{host}\n")
-	if smb_null_hosts:
-		print_warning("The following hosts allow SMB null sessions:")
-		for host in smb_null_hosts:
-			print_info(f"  {host}")
-		print_info(f"Results saved to {ENUM_DIR}/smb_null_hosts.txt")
-	
-	with open(f"{ENUM_DIR}/rpc_null_hosts.txt", "w") as f:
-		for host in rpc_null_hosts:
-			f.write(f"{host}\n")
-	if rpc_null_hosts:
-		print_warning("The following hosts allow RPC null sessions:")
-		for host in rpc_null_hosts:
-			print_info(f"  {host}")
-		print_info(f"Results saved to {ENUM_DIR}/rpc_null_hosts.txt")
-  
-  
-	# LDAP null enumeration
-	print_info("Checking for LDAP null binds...")
-	ldap_null_hosts = []
-
-	try:
-		with open(f"{ENUM_DIR}/targets_ldap.txt", "r") as f:
-			for ip in f:
-				ip = ip.strip()
-				if ip:  # Skip empty lines
-					print_info(f"Attempting LDAP null bind on {ip}")
-					
-					# Try both standard LDAP and LDAPS
-					protocols = [
-						("ldap", "389"),
-						("ldaps", "636")
-					]
-					
-					for protocol, port in protocols:
-						# Basic anonymous bind check
-						result = subprocess.run(
-							f"ldapsearch -x -H {protocol}://{ip}:{port} -s base '(objectClass=*)'",
-							shell=True, capture_output=True, text=True
-						)
-						
-						# If successful, try to enumerate more information
-						if result.returncode == 0:
-							ldap_null_hosts.append(f"{ip}:{port}")
-							print_success(f"Successful null bind on {protocol}://{ip}:{port}")
-							
-							# Save initial results
-							with open(f"{ENUM_DIR}/ldap_enum_{ip}.txt", "w") as out:
-								out.write(f"=== {protocol}://{ip}:{port} Anonymous Bind Results ===\n")
-								out.write(result.stdout)
-							
-							# Try to enumerate naming contexts
-							naming_result = subprocess.run(
-								f"ldapsearch -x -H {protocol}://{ip}:{port} -s base -b '' '(objectClass=*)' namingContexts",
-								shell=True, capture_output=True, text=True
-							)
-							
-							if naming_result.returncode == 0 and "namingContexts:" in naming_result.stdout:
-								contexts = []
-								for line in naming_result.stdout.splitlines():
-									if "namingContexts:" in line:
-										context = line.split("namingContexts:", 1)[1].strip()
-										contexts.append(context)
-										
-								# For each naming context, try to enumerate objects
-								for context in contexts:
-									enum_result = subprocess.run(
-										f"ldapsearch -x -H {protocol}://{ip}:{port} -b '{context}' '(objectClass=*)'",
-										shell=True, capture_output=True, text=True
-									)
-									
-									with open(f"{ENUM_DIR}/ldap_enum_{ip}.txt", "a") as out:
-										out.write(f"\n=== Enumeration of {context} ===\n")
-										out.write(enum_result.stdout)
-						else:
-							print_info(f"No null bind available on {protocol}://{ip}:{port}")
-
-	except FileNotFoundError:
-		print_warning("No LDAP targets found")
-	except Exception as e:
-		print_error(f"Error during LDAP enumeration: {str(e)}")
-
-	# Output vulnerable hosts
-	with open(f"{ENUM_DIR}/ldap_null_hosts.txt", "w") as f:
-		for host in ldap_null_hosts:
-			f.write(f"{host}\n")
-	if ldap_null_hosts:
-		print_warning("The following hosts allow LDAP null binds:")
-		for host in ldap_null_hosts:
-			print_info(f"  {host}")
-		print_info(f"Results saved to {ENUM_DIR}/ldap_null_hosts.txt")
-
-	print_success("LDAP null bind enumeration complete!")
- 
-	# Top 1000 TCP scan without service detection
-	print_info("Running top 1000 TCP scan...")
-	tcp_scan_cmd = f"nmap {NMAP_COMMON} -sS --open -oA {ENUM_DIR}/top_1000_tcp_scan -iL {ENUM_DIR}/output_file"
-	os.system(tcp_scan_cmd)
-	print_success("Top 1000 TCP scan complete!")
-	
-	# Scanning common web ports 80,443,8000-8002,8080-8089,8443,3000-3001,5000-5001,9000-9001,81,88,8008,8081,8888,9443,7443,7080,7081,8889,8983,9999,4000,4567,6060,6066,6068,9090,9292,7000-7001,4848,5985,10000
-	print_info("Scanning common web ports...")
-	web_ports = "80,443,8000-8002,8080-8089,8443,3000-3001,5000-5001,9000-9001,81,88,8008,8081,8888,9443,7443,7080,7081,8889,8983,9999,4000,4567,6060,6066,6068,9090,9292,7000-7001,4848,5985,10000"
-	web_scan_cmd = f"nmap {NMAP_COMMON} -sS --open -p {web_ports} -oA {ENUM_DIR}/web_scan -iL {ENUM_DIR}/output_file"
-	os.system(web_scan_cmd)
-	print_success("Common web ports scan complete!")
- 
-	# Parse all Nmap scan results utilizing ultimate-nmap-parser
-	print_info("Parsing all Nmap scan results utilizing ultimate-nmap-parser...")
-
-	# Create parser output directory
-	parser_output_dir = f"{ENUM_DIR}/nmap_parsed"
-	os.makedirs(parser_output_dir, exist_ok=True)
-
-	# Use absolute paths for both the parser and the scan results
-	parser_path = f"{TOOLS_DIR}/general/ultimate-nmap-parser/ultimate-nmap-parser.sh"
-	os.chmod(parser_path, 0o755)  # Make executable with rwxr-xr-x permissions
-	scan_results = f"{ENUM_DIR}/*.gnmap"
-
-	# Execute parser from ENUM_DIR with absolute paths
-	os.chdir(f"{ENUM_DIR}/nmap_parsed")
-	os.system(f"{parser_path} {scan_results} --all")
-
-	print_success(f"All Nmap scan results parsed and saved to {parser_output_dir}!")
- 
- 
-	# # UDP scan for common ports
-	# print_info("Running UDP scan for common ports...")
-	# udp_ports = "53,69,111,123,137,138,161,162,500,514,520,623,1434,1900,5353"
-	# udp_scan_cmd = f"nmap {NMAP_COMMON} -sU -sV --version-intensity 5 --open -p {udp_ports} -oA {ENUM_DIR}/udp_scan -iL {ENUM_DIR}/output_file"
-	# os.system(udp_scan_cmd)
-	
-	print_success("Phase 2 complete - Port scanning finished 🔍 - TOP 1000 TCP, WEB PORTS, AND NULL BINDS (RPC, LDAP, SMB) scan complete! 🔍")
+    if subnets:
+        print_info("Subnet ranges detected - Starting with quick discovery scan...")
+        # Initial host discovery and quick port scan for subnets
+        for subnet in subnets:
+            print_info(f"Scanning subnet {subnet}...")
+            # Quick SYN scan with standardized parameters
+            quick_scan_cmd = ["nmap"] + NMAP_COMMON.split() + ["-sS", "--top-ports", "20", "--open", "--exclude", exclude, subnet]
+            result = subprocess.check_output(quick_scan_cmd, text=True)
+            
+            if "open" in result:
+                print_success(f"Open ports found in subnet {subnet}")
+                ips_with_open_ports = [line.split()[4] for line in result.splitlines() 
+                                     if "Nmap scan report for" in line]
+                with open(output_file, "a") as file:
+                    for ip in ips_with_open_ports:
+                        file.write(ip + "\n")
+        
+        print_success("Quick discovery finished - Check live hosts in open_ports.txt")
+        
+        # Combine discovered IPs with individual IPs from scope
+        if os.path.exists(output_file):
+            with open(output_file, "r") as f:
+                discovered_ips = set(line.strip() for line in f)
+            individual_ips.extend(discovered_ips)
+    
+    # Remove duplicates and write final IP list
+    individual_ips = list(set(individual_ips))
+    with open(output_file, "w") as f:
+        for ip in individual_ips:
+            f.write(ip + "\n")
+    
+    if not individual_ips:
+        print_error("No live hosts found to scan!")
+        return
+    
+    print_info(f"Starting detailed scans against {len(individual_ips)} hosts...")
+    
+    # Domain service ports scan (88, 135, 389, 445)
+    domain_ports = [88, 135, 389, 445]
+    print_info("Scanning domain service ports (88, 135, 389, 445)...")
+    domain_ports_str = ",".join(map(str, domain_ports))
+    domain_scan_cmd = f"nmap {NMAP_COMMON} -sS --open -p {domain_ports_str} -oA {ENUM_DIR}/domain_services -iL {output_file}"
+    os.system(domain_scan_cmd)
+    
+    # Parse results for each port
+    for port in domain_ports:
+        print_info(f"Extracting hosts with port {port} open...")
+        os.system(f"""grep "{port}/open" {ENUM_DIR}/domain_services.gnmap | cut -d" " -f2 > {ENUM_DIR}/targets_port_{port}.txt""")
+        
+        # Map ports to services
+        if port == 88:
+            os.system(f"cp {ENUM_DIR}/targets_port_88.txt {ENUM_DIR}/targets_kerberos.txt")
+        elif port == 135:
+            os.system(f"cp {ENUM_DIR}/targets_port_135.txt {ENUM_DIR}/targets_rpc.txt")
+        elif port == 389:
+            os.system(f"cp {ENUM_DIR}/targets_port_389.txt {ENUM_DIR}/targets_ldap.txt") 
+        elif port == 445:
+            os.system(f"cp {ENUM_DIR}/targets_port_445.txt {ENUM_DIR}/targets_smb.txt")
+    
+    # Identify domain controllers
+    print_info("Identifying domain controllers...")
+    try:
+        with open(f"{ENUM_DIR}/targets_port_88.txt", "r") as f:
+            kerberos_hosts = set(line.strip() for line in f)
+        with open(f"{ENUM_DIR}/targets_port_389.txt", "r") as f:
+            ldap_hosts = set(line.strip() for line in f)
+        
+        domain_controllers = kerberos_hosts.intersection(ldap_hosts)
+        if domain_controllers:
+            with open(f"{ENUM_DIR}/targets_domain_controllers.txt", "w") as f:
+                for dc in domain_controllers:
+                    f.write(f"{dc}\n")
+            print_success(f"Found {len(domain_controllers)} domain controllers")
+    except FileNotFoundError:
+        print_warning("Could not identify domain controllers - required service ports not found")
+    
+    # Top 1000 TCP scan
+    print_info("Running top 1000 TCP port scan...")
+    tcp_scan_cmd = f"nmap {NMAP_COMMON} -sS --open -oA {ENUM_DIR}/top_1000_tcp_scan -iL {output_file}"
+    os.system(tcp_scan_cmd)
+    
+    # Web ports scan
+    print_info("Scanning common web ports...")
+    web_ports = "80,443,8000-8002,8080-8089,8443,3000-3001,5000-5001,9000-9001,81,88,8008,8081,8888,9443,7443,7080,7081,8889,8983,9999,4000,4567,6060,6066,6068,9090,9292,7000-7001,4848,5985,10000"
+    web_scan_cmd = f"nmap {NMAP_COMMON} -sS --open -p {web_ports} -oA {ENUM_DIR}/web_scan -iL {output_file}"
+    os.system(web_scan_cmd)
+    
+    # Parse all Nmap scan results
+    print_info("Parsing all Nmap scan results...")
+    parser_output_dir = f"{ENUM_DIR}/nmap_parsed"
+    os.makedirs(parser_output_dir, exist_ok=True)
+    parser_path = f"{TOOLS_DIR}/general/ultimate-nmap-parser/ultimate-nmap-parser.sh"
+    os.chmod(parser_path, 0o755)
+    scan_results = f"{ENUM_DIR}/*.gnmap"
+    os.chdir(f"{ENUM_DIR}/nmap_parsed")
+    os.system(f"{parser_path} {scan_results} --all")
+    
+    scan_summary = f"""
+Scan Summary:
+============
+Total Hosts: {len(individual_ips)}
+Domain Controllers: {len(domain_controllers) if 'domain_controllers' in locals() else 0}
+Scan Results: {parser_output_dir}
+"""
+    print_info(scan_summary)
+    
+    with open(f"{ENUM_DIR}/scan_summary.txt", "w") as f:
+        f.write(scan_summary)
+    
+    print_success("Phase 2 complete - Port scanning finished 🔍 - TOP 1000 TCP, WEB PORTS, AND NULL BINDS (RPC, LDAP, SMB) scan complete! 🔍")
 
 def parse_args():
-	parser = argparse.ArgumentParser()
-
-	parser.add_argument("-s", "--scope", type=str,
-			help="The scope.txt file.")
-	parser.add_argument("-e", "--exclude", type=str,
-			   help="Exclude your own IP to avoid messing things up while relaying on internal networks!")
-	return parser.parse_args()
+    parser = argparse.ArgumentParser(description="Network reconnaissance tool supporting both subnet ranges and IP lists")
+    parser.add_argument("-s", "--scope", type=str, required=True,
+                    help="Scope file containing either subnet ranges (CIDR notation) or individual IP addresses")
+    parser.add_argument("-e", "--exclude", type=str, required=True,
+                    help="IP address to exclude from scans (e.g., your attacking machine)")
+    return parser.parse_args()
 
 def enumerate_services():
 	print_info("Starting service-specific enumeration...")
