@@ -440,7 +440,7 @@ run
 spool off
 
 # SMBGhost Scanner (CVE-2020-0796)
-use auxiliary/scanner/smb/smb_ghost
+use exploit/windows/smb/cve_2020_0796_smbghost
 set RHOSTS file:{target_file}
 set VERBOSE true
 spool {msf_output_dir}/smbghost_scan.txt
