@@ -559,7 +559,7 @@ def scan_smb_vulnerabilities():
     print_info("Starting targeted SMB vulnerability scans...")
     
     # Use parsed Nmap output for SMB targets
-    smb_targets = f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_445-microsoft-ds.txt"
+    smb_targets = f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_445-smb.txt"
     if not os.path.exists(smb_targets) or os.path.getsize(smb_targets) == 0:
         print_warning("No SMB targets found to scan")
         return
