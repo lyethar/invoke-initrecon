@@ -411,14 +411,6 @@ spool {msf_output_dir}/smb_ms17_010.txt
 run
 spool off
 
-# SMB Pipe Auditor
-use auxiliary/scanner/smb/pipe_auditor
-set RHOSTS file:{target_file}
-set VERBOSE true
-spool {msf_output_dir}/smb_pipe_audit.txt
-run
-spool off
-
 # SMB Share Enumeration
 use auxiliary/scanner/smb/smb_enumshares
 set RHOSTS file:{target_file}
@@ -432,7 +424,6 @@ spool off
 # BlueKeep Scanner (CVE-2019-0708)
 use auxiliary/scanner/rdp/cve_2019_0708_bluekeep
 set RHOSTS file:{target_file}
-set RDP_CLIENT_IP 192.168.1.1
 set VERBOSE true
 spool {msf_output_dir}/bluekeep_scan.txt
 run
@@ -449,11 +440,11 @@ run
 spool off
 
 # SMBGhost Scanner (CVE-2020-0796)
-use auxiliary/scanner/smb/smb_ghostcat
+use auxiliary/scanner/smb/smb_ghost
 set RHOSTS file:{target_file}
 set VERBOSE true
 spool {msf_output_dir}/smbghost_scan.txt
-run
+check
 spool off
 
 # MS12-020 RDP Scanner
