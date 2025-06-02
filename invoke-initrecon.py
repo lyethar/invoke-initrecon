@@ -345,10 +345,10 @@ exit
 
 
 	# SNMP Enumeration
-	if os.path.exists(f"{ENUM_DIR}/targets_snmp.txt") and os.path.getsize(f"{ENUM_DIR}/targets_snmp.txt") > 0:
+	if os.path.exists(f"{ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt") and os.path.getsize(f"{ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt") > 0:
 		print_info("Enumerating SNMP targets...")
-		os.system(f"onesixtyone -c /usr/share/seclists/Discovery/SNMP/snmp-community-strings.txt -i {ENUM_DIR}/targets_snmp.txt > {ENUM_DIR}/snmp_communities.txt")
-		os.system(f"snmpwalk -v1 -c public $(head -n 1 {ENUM_DIR}/targets_snmp.txt) > {ENUM_DIR}/snmp_walk.txt")
+		os.system(f"onesixtyone -c /usr/share/seclists/Discovery/SNMP/snmp-community-strings.txt -i {ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt > {ENUM_DIR}/snmp_communities.txt")
+		os.system(f"snmpwalk -v1 -c public $(head -n 1 {ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt) > {ENUM_DIR}/snmp_walk.txt")
 
 	# Web Enumeration with Nuclei
 	web_urls_file = f"{ENUM_DIR}/nmap_parsed/parse/web-urls.txt"
@@ -385,39 +385,11 @@ def create_msf_resource_script(target_file, output_dir):
 setg THREADS 10
 setg VERBOSE true
 
-# SMB Version Detection
-use auxiliary/scanner/smb/smb_version
-set RHOSTS file:{target_file}
-set VERBOSE true
-spool {msf_output_dir}/smb_version.txt
-run
-spool off
-
-# SMB Login Scan
-use auxiliary/scanner/smb/smb_login
-set RHOSTS file:{target_file}
-set SMBUser ''
-set SMBPass ''
-set VERBOSE true
-spool {msf_output_dir}/smb_login.txt
-run
-spool off
-
 # SMB MS17-010 Scanner
 use auxiliary/scanner/smb/smb_ms17_010
 set RHOSTS file:{target_file}
 set VERBOSE true
 spool {msf_output_dir}/smb_ms17_010.txt
-run
-spool off
-
-# SMB Share Enumeration
-use auxiliary/scanner/smb/smb_enumshares
-set RHOSTS file:{target_file}
-set ShowFiles true
-set SpiderShares false
-set VERBOSE true
-spool {msf_output_dir}/smb_shares.txt
 run
 spool off
 
@@ -430,13 +402,11 @@ run
 spool off
 
 # DoublePulsar SMB Scanner
-use auxiliary/scanner/smb/smb_ms17_010_scan
+use exploit/windows/smb/smb_doublepulsar_rce
 set RHOSTS file:{target_file}
-set CHECK_ARCH true
-set CHECK_DOPU true
 set VERBOSE true
 spool {msf_output_dir}/doublepulsar_scan.txt
-run
+check
 spool off
 
 # SMBGhost Scanner (CVE-2020-0796)
@@ -558,6 +528,19 @@ def scan_smb_vulnerabilities():
     # Create directory for SMB vulnerability scan results
     smb_vuln_dir = f"{ENUM_DIR}/smb_vulnerabilities"
     os.makedirs(smb_vuln_dir, exist_ok=True)
+
+    # Run NetExec SMB checks
+    print_info("Running NetExec SMB anonymous share and null session checks...")
+    try:
+        # Check for anonymous share access
+        print_info("Checking for anonymous share access...")
+        os.system(f"netexec smb {smb_targets} -u 'a' -p '' --shares > {smb_vuln_dir}/netexec_anon_shares.txt")
+        
+        # Check for RPC null authentication
+        print_info("Checking for RPC null authentication...")
+        os.system(f"netexec smb {smb_targets} -u '' -p '' --users > {smb_vuln_dir}/netexec_null_users.txt")
+    except Exception as e:
+        print_error(f"Error running NetExec scans: {str(e)}")
 
     # NSE script categories for SMB vulnerability scanning
     smb_scripts = [
