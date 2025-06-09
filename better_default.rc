@@ -1,48 +1,48 @@
 use auxiliary/scanner/ftp/ftp_login
-set RHOSTS file:/home/kali/ptest-2024/enumeration/parse/hosts/tcp_21-ftp.txt
+set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_21-ftp.txt
 set BRUTEFORCE_SPEED 3
-set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt
+set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/ftp-betterdefaultpasslist.txt
 spool ftp_login_out
 run
 spool off
 
 use auxiliary/scanner/ssh/ssh_login
-set RHOSTS file:/home/kali/ptest-2024/enumeration/parse/hosts/tcp_22-ssh.txt
+set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_22-ssh.txt
 set BRUTEFORCE_SPEED 3
-set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt
+set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/ssh-betterdefaultpasslist.txt
 spool ssh_login_out
 run
 spool off
 
 auxiliary/scanner/vnc/vnc_login
-set RHOSTS file:/home/kali/ptest-2024/enumeration/parse/hosts/tcp_5900-vnc.txt
+set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_5900-vnc.txt
 set BRUTEFORCE_SPEED 3
-set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt
+set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt
 spool vnc_login_out
 run
 spool off
 
 auxiliary/scanner/mssql/mssql_login
-set RHOSTS file:/home/kali/ptest-2024/enumeration/parse/hosts/tcp_1433-mssql.txt
+set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_1433-mssql.txt
 set BRUTEFORCE_SPEED 3
-set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt
+set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt
 spool mssql_login_out
 run
 spool off
 
 auxiliary/scanner/postgres/postgres_login
-set RHOSTS file:/home/kali/ptest-2024/enumeration/parse/hosts/tcp_5432-postgres.txt
+set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_5432-postgres.txt
 set BRUTEFORCE_SPEED 3
-set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt
+set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt
 spool postgres_login_out
 run
 spool 
 
 
 auxiliary/scanner/mysql/mysql_login
-set RHOSTS file:/home/kali/ptest-2024/enumeration/parse/hosts/tcp_3306-mysql.txt
+set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_3306-mysql.txt
 set BRUTEFORCE_SPEED 3
-set USERPASS_FILE /usr/share/seclists/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt
+set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt
 spool mysql_login_out
 run
 spool off
