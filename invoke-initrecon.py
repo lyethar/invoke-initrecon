@@ -240,7 +240,10 @@ def invokescan(scope, exclude):
     print_info("Running top 1000 TCP port scan...")
     tcp_scan_cmd = f"nmap {NMAP_COMMON} -sS --open -oA {ENUM_DIR}/top_1000_tcp_scan -iL {output_file}"
     os.system(tcp_scan_cmd)
-    
+    # replace with httpx httpx -l <input_file> \
+    #-ports http:80,http:443,http:8000,http:8001,http:8002,http:8080,http:8081,http:8082,http:8083,http:8084,http:8085,http:8086,http:8087,http:8088,http:8089,http:8443,http:3000,http:3001,http:5000,http:5001,http:9000,http:9001,http:81,http:88,http:8008,http:8081,http:8888,http:9443,http:7443,http:7080,http:7081,http:8889,http:8983,http:9999,http:4000,http:4567,http:6060,http:6066,http:6068,http:9090,http:9292,http:7000,http:7001,http:4848,http:5985,http:10000,https:80,https:443,https:8000,https:8001,https:8002,https:8080,https:8081,https:8082,https:8083,https:8084,https:8085,https:8086,https:8087,https:8088,https:8089,https:8443,https:3000,https:3001,https:5000,https:5001,https:9000,https:9001,https:81,https:88,https:8008,https:8081,https:8888,https:9443,https:7443,https:7080,https:7081,https:8889,https:8983,https:9999,https:4000,https:4567,https:6060,https:6066,https:6068,https:9090,https:9292,https:7000,https:7001,https:4848,https:5985,https:10000 \
+    #-o <ENUM_DIR>/httpx_results.txt \
+    #-sc -title -server -tech-detect -status-code -tls-probe
     # Web ports scan
     print_info("Scanning common web ports...")
     web_ports = "80,443,8000-8002,8080-8089,8443,3000-3001,5000-5001,9000-9001,81,88,8008,8081,8888,9443,7443,7080,7081,8889,8983,9999,4000,4567,6060,6066,6068,9090,9292,7000-7001,4848,5985,10000"
