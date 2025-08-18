@@ -1,9 +1,9 @@
-#!/bin/python3 
+#!/bin/python3
 
 import sys
-from colorama import Fore, Back, Style 
-import subprocess 
-import os 
+from colorama import Fore, Back, Style
+import subprocess
+import os
 import argparse
 import re
 
@@ -23,19 +23,19 @@ RESET = Style.RESET_ALL
 
 # Helper function for formatted output
 def print_status(message, status_type=INFO, symbol="[*]"):
-	print(f"{status_type}{symbol} {message}{RESET}")
+    print(f"{status_type}{symbol} {message}{RESET}")
 
 def print_success(message):
-	print_status(message, SUCCESS, "[+]")
+    print_status(message, SUCCESS, "[+]")
 
 def print_error(message):
-	print_status(message, ERROR, "[-]")
+    print_status(message, ERROR, "[-]")
 
 def print_info(message):
-	print_status(message, INFO, "[*]")
+    print_status(message, INFO, "[*]")
 
 def print_warning(message):
-	print_status(message, WARNING, "[!]")
+    print_status(message, WARNING, "[!]")
 
 # Define standardized scan parameters
 NMAP_STANDARD_OPTS = "-n -Pn"  # No DNS resolution, treat all hosts as online
@@ -51,81 +51,78 @@ NMAP_COMMON = f"{NMAP_STANDARD_OPTS} {NMAP_TIMING} {NMAP_RATE} {NMAP_RETRIES} {N
 
 # Define Banner
 def printBanner():
-	print (Fore.YELLOW + """   ________  ________  ________  ________  ____ ___  ________   ________  ________   ________  ________   _______  ________  ________  ________  ________ 
+    print (Fore.YELLOW + """   ________  ________  ________  ________  ____ ___  ________   ________  ________   ________  ________   _______  ________  ________  ________  ________ 
   /        \/    /   \/    /   \/        \/    /   \/        \ /        \/    /   \ /        \/        \//       \/        \/        \/        \/    /   \
  _/       //         /         /         /         /         /_/       //         /_/       //        _//        /         /         /         /         /
 /         /         /\        /         /        _/        _//         /         //         //       //        _/        _/       --/         /         / 
 \\_______/\__/_____/  \______/\________/\____/___/\________/ \\_______/\__/_____/ \________/ \______/ \____/___/\________/\________/\________/\__/_____/  \n\n\n """)
 print(Style.RESET_ALL)
 
-def makedir():	
-	# Create base directories with absolute paths
-	directories = [BASE_DIR, TOOLS_DIR, ENUM_DIR, EXPLOIT_DIR, POST_DIR]
-	for x in directories: 
-		os.system(f'sudo mkdir -p {x}')
-		os.system(f'sudo chmod 777 {x}')  # Ensure we have write permissions
-	print_success("Base directories created ✅")
+def makedir():
+    # Create base directories with absolute paths
+    directories = [BASE_DIR, TOOLS_DIR, ENUM_DIR, EXPLOIT_DIR, POST_DIR]
+    for x in directories:
+        os.system(f'sudo mkdir -p {x}')
+        os.system(f'sudo chmod 777 {x}')  # Ensure we have write permissions
+    print_success("Base directories created ✅")
 
 def downloadtooling(tools):
-	print_info("Downloading and setting up enumeration tools...")
-	
-	# System updates
-	print_info("Updating system...")
-	os.system('sudo apt update && sudo apt install -y enum4linux nbtscan onesixtyone snmp-mibs-downloader seclists')
-	
-	# Create tool categories in /opt/initrecon/tools/
-	os.chdir(TOOLS_DIR)
-	categories = ['smb', 'ldap', 'ftp', 'general', 'web']
-	for category in categories:
-		if not os.path.exists(f"{TOOLS_DIR}/{category}"):
-			os.makedirs(f"{TOOLS_DIR}/{category}")
-	
-	# Download and organize tools
-	print_info("Downloading tools...")
-	
-	# General tools
-	os.system(f"wget https://raw.githubusercontent.com/lyethar/invoke-initrecon/main/better_default.rc -O {TOOLS_DIR}/better_default.rc")
-	os.system(f"wget https://github.com/projectdiscovery/nuclei/releases/download/v3.4.4/nuclei_3.4.4_linux_amd64.zip -O {TOOLS_DIR}/nuclei.zip")
-	os.system(f"cd {TOOLS_DIR} && unzip nuclei.zip && rm nuclei.zip")
-	os.system(f"wget https://github.com/sensepost/gowitness/releases/download/3.0.5/gowitness-3.0.5-linux-amd64 -O {TOOLS_DIR}/gowitness")
-	os.system(f"chmod +x {TOOLS_DIR}/gowitness")
-	os.system(f"chmod +x {TOOLS_DIR}/nuclei")
-	
-	# Protocol-specific tools
-	tool_mapping = {
-		'smb': [
-			'https://github.com/lefayjey/linWinPwn',
-			'https://github.com/lgandx/Responder',
-			'https://github.com/Pennyw0rth/NetExec',
-			'https://github.com/dirkjanm/mitm6'
-		],
-		'ldap': [
-			'https://github.com/lyethar/KerbSpray',
-			'https://github.com/ropnop/windapsearch',
-			'https://github.com/dirkjanm/ldapdomaindump'
-		],
-		'ftp': [
-			'https://github.com/danielmiessler/SecLists'
-		],
-		'general': [
-			'https://github.com/robertdavidgraham/masscan',
-			'https://github.com/shifty0g/ultimate-nmap-parser',
-			'https://github.com/s4vitar/rpcenum',
-			'https://github.com/jtesta/ssh-audit'
-		]
-	}
-	
-	# Clone and set up tools with absolute paths
-	for category, repo_list in tool_mapping.items():
-		category_path = f"{TOOLS_DIR}/{category}"
-		for repo in repo_list:
-			repo_name = repo.split('/')[-1]
-			os.system(f"cd {category_path} && git clone {repo}")
-	
-	#print("[+] Installing Python requirements for tools...")
-	#os.system('pip3 install impacket ldap3 pyasn1 pycryptodomex')
-	
-	print_success("Tool setup complete! ✅")
+    print_info("Downloading and setting up enumeration tools...")
+
+    # System updates
+    print_info("Updating system...")
+    os.system('sudo apt update && sudo apt install -y enum4linux nbtscan onesixtyone snmp-mibs-downloader seclists')
+
+    # Create tool categories in /opt/initrecon/tools/
+    os.chdir(TOOLS_DIR)
+    categories = ['smb', 'ldap', 'ftp', 'general', 'web']
+    for category in categories:
+        if not os.path.exists(f"{TOOLS_DIR}/{category}"):
+            os.makedirs(f"{TOOLS_DIR}/{category}")
+
+    # Download and organize tools
+    print_info("Downloading tools...")
+
+    # General tools
+    os.system(f"wget https://raw.githubusercontent.com/lyethar/invoke-initrecon/main/better_default.rc -O {TOOLS_DIR}/better_default.rc")
+    os.system(f"wget https://github.com/projectdiscovery/nuclei/releases/download/v3.4.4/nuclei_3.4.4_linux_amd64.zip -O {TOOLS_DIR}/nuclei.zip")
+    os.system(f"cd {TOOLS_DIR} && unzip nuclei.zip && rm nuclei.zip")
+    os.system(f"wget https://github.com/sensepost/gowitness/releases/download/3.0.5/gowitness-3.0.5-linux-amd64 -O {TOOLS_DIR}/gowitness")
+    os.system(f"chmod +x {TOOLS_DIR}/gowitness")
+    os.system(f"chmod +x {TOOLS_DIR}/nuclei")
+
+    # Protocol-specific tools
+    tool_mapping = {
+        'smb': [
+            'https://github.com/lefayjey/linWinPwn',
+            'https://github.com/lgandx/Responder',
+            'https://github.com/Pennyw0rth/NetExec',
+            'https://github.com/dirkjanm/mitm6'
+        ],
+        'ldap': [
+            'https://github.com/lyethar/KerbSpray',
+            'https://github.com/ropnop/windapsearch',
+            'https://github.com/dirkjanm/ldapdomaindump'
+        ],
+        'ftp': [
+            'https://github.com/danielmiessler/SecLists'
+        ],
+        'general': [
+            'https://github.com/robertdavidgraham/masscan',
+            'https://github.com/shifty0g/ultimate-nmap-parser',
+            'https://github.com/s4vitar/rpcenum',
+            'https://github.com/jtesta/ssh-audit'
+        ]
+    }
+
+    # Clone and set up tools with absolute paths
+    for category, repo_list in tool_mapping.items():
+        category_path = f"{TOOLS_DIR}/{category}"
+        for repo in repo_list:
+            repo_name = repo.split('/')[-1]
+            os.system(f"cd {category_path} && git clone {repo}")
+
+    print_success("Tool setup complete! ✅")
 
 def is_subnet(ip_string):
     """Check if the string represents a subnet (CIDR notation or with wildcards)"""
@@ -135,7 +132,7 @@ def analyze_scope_file(scope_file):
     """Analyze scope file to determine if it contains subnets or individual IPs"""
     subnets = []
     individual_ips = []
-    
+
     with open(scope_file, "r") as f:
         for line in f:
             line = line.strip()
@@ -145,16 +142,23 @@ def analyze_scope_file(scope_file):
                 subnets.append(line)
             else:
                 individual_ips.append(line)
-    
+
     return subnets, individual_ips
 
 def invokescan(scope, exclude):
     os.chdir(ENUM_DIR)
     print_info("Starting network enumeration...")
-    
+
+    # Determine correct exclusion flag
+    exclude_flag = "--excludefile" if os.path.isfile(exclude) else "--exclude"
+    if exclude_flag == "--excludefile":
+        print_info(f"Using excludefile: {exclude}")
+    else:
+        print_info(f"Using exclude hostspec: {exclude}")
+
     # Analyze scope file
     subnets, individual_ips = analyze_scope_file(scope)
-    
+
     # Create output file for discovered hosts
     output_file = f"{ENUM_DIR}/open_ports.txt"
     if os.path.exists(output_file):
@@ -166,59 +170,62 @@ def invokescan(scope, exclude):
         for subnet in subnets:
             print_info(f"Scanning subnet {subnet}...")
             # Quick SYN scan with standardized parameters
-            quick_scan_cmd = ["nmap"] + NMAP_COMMON.split() + ["-sS", "--top-ports", "20", "--open", "--exclude", exclude, subnet]
+            quick_scan_cmd = ["nmap"] + NMAP_COMMON.split() + [
+                "-sS", "--top-ports", "20", "--open",
+                exclude_flag, exclude, subnet
+            ]
             result = subprocess.check_output(quick_scan_cmd, text=True)
-            
+
             if "open" in result:
                 print_success(f"Open ports found in subnet {subnet}")
-                ips_with_open_ports = [line.split()[4] for line in result.splitlines() 
-                                     if "Nmap scan report for" in line]
+                ips_with_open_ports = [line.split()[4] for line in result.splitlines()
+                                       if "Nmap scan report for" in line]
                 with open(output_file, "a") as file:
                     for ip in ips_with_open_ports:
                         file.write(ip + "\n")
-        
+
         print_success("Quick discovery finished - Check live hosts in open_ports.txt")
-        
+
         # Combine discovered IPs with individual IPs from scope
         if os.path.exists(output_file):
             with open(output_file, "r") as f:
                 discovered_ips = set(line.strip() for line in f)
             individual_ips.extend(discovered_ips)
-    
+
     # Remove duplicates and write final IP list
     individual_ips = list(set(individual_ips))
     with open(output_file, "w") as f:
         for ip in individual_ips:
             f.write(ip + "\n")
-    
+
     if not individual_ips:
         print_error("No live hosts found to scan!")
         return
-    
+
     print_info(f"Starting detailed scans against {len(individual_ips)} hosts...")
-    
+
     # Domain service ports scan (88, 135, 389, 445)
     domain_ports = [88, 135, 389, 445]
     print_info("Scanning domain service ports (88, 135, 389, 445)...")
     domain_ports_str = ",".join(map(str, domain_ports))
     domain_scan_cmd = f"nmap {NMAP_COMMON} -sS --open -p {domain_ports_str} -oA {ENUM_DIR}/domain_services -iL {output_file}"
     os.system(domain_scan_cmd)
-    
+
     # Parse results for each port
     for port in domain_ports:
         print_info(f"Extracting hosts with port {port} open...")
         os.system(f"""grep "{port}/open" {ENUM_DIR}/domain_services.gnmap | cut -d" " -f2 > {ENUM_DIR}/targets_port_{port}.txt""")
-        
+
         # Map ports to services
         if port == 88:
             os.system(f"cp {ENUM_DIR}/targets_port_88.txt {ENUM_DIR}/targets_kerberos.txt")
         elif port == 135:
             os.system(f"cp {ENUM_DIR}/targets_port_135.txt {ENUM_DIR}/targets_rpc.txt")
         elif port == 389:
-            os.system(f"cp {ENUM_DIR}/targets_port_389.txt {ENUM_DIR}/targets_ldap.txt") 
+            os.system(f"cp {ENUM_DIR}/targets_port_389.txt {ENUM_DIR}/targets_ldap.txt")
         elif port == 445:
             os.system(f"cp {ENUM_DIR}/targets_port_445.txt {ENUM_DIR}/targets_smb.txt")
-    
+
     # Identify domain controllers
     print_info("Identifying domain controllers...")
     try:
@@ -226,7 +233,7 @@ def invokescan(scope, exclude):
             kerberos_hosts = set(line.strip() for line in f)
         with open(f"{ENUM_DIR}/targets_port_389.txt", "r") as f:
             ldap_hosts = set(line.strip() for line in f)
-        
+
         domain_controllers = kerberos_hosts.intersection(ldap_hosts)
         if domain_controllers:
             with open(f"{ENUM_DIR}/targets_domain_controllers.txt", "w") as f:
@@ -235,21 +242,18 @@ def invokescan(scope, exclude):
             print_success(f"Found {len(domain_controllers)} domain controllers")
     except FileNotFoundError:
         print_warning("Could not identify domain controllers - required service ports not found")
-    
+
     # Top 1000 TCP scan
     print_info("Running top 1000 TCP port scan...")
     tcp_scan_cmd = f"nmap {NMAP_COMMON} -sS --open -oA {ENUM_DIR}/top_1000_tcp_scan -iL {output_file}"
     os.system(tcp_scan_cmd)
-    # replace with httpx httpx -l <input_file> \
-    #-ports http:80,http:443,http:8000,http:8001,http:8002,http:8080,http:8081,http:8082,http:8083,http:8084,http:8085,http:8086,http:8087,http:8088,http:8089,http:8443,http:3000,http:3001,http:5000,http:5001,http:9000,http:9001,http:81,http:88,http:8008,http:8081,http:8888,http:9443,http:7443,http:7080,http:7081,http:8889,http:8983,http:9999,http:4000,http:4567,http:6060,http:6066,http:6068,http:9090,http:9292,http:7000,http:7001,http:4848,http:5985,http:10000,https:80,https:443,https:8000,https:8001,https:8002,https:8080,https:8081,https:8082,https:8083,https:8084,https:8085,https:8086,https:8087,https:8088,https:8089,https:8443,https:3000,https:3001,https:5000,https:5001,https:9000,https:9001,https:81,https:88,https:8008,https:8081,https:8888,https:9443,https:7443,https:7080,https:7081,https:8889,https:8983,https:9999,https:4000,https:4567,https:6060,https:6066,https:6068,https:9090,https:9292,https:7000,https:7001,https:4848,https:5985,https:10000 \
-    #-o <ENUM_DIR>/httpx_results.txt \
-    #-sc -title -server -tech-detect -status-code -tls-probe
+
     # Web ports scan
     print_info("Scanning common web ports...")
     web_ports = "80,443,8000-8002,8080-8089,8443,3000-3001,5000-5001,9000-9001,81,88,8008,8081,8888,9443,7443,7080,7081,8889,8983,9999,4000,4567,6060,6066,6068,9090,9292,7000-7001,4848,5985,10000"
     web_scan_cmd = f"nmap {NMAP_COMMON} -sS --open -p {web_ports} -oA {ENUM_DIR}/web_scan -iL {output_file}"
     os.system(web_scan_cmd)
-    
+
     # Parse all Nmap scan results
     print_info("Parsing all Nmap scan results...")
     parser_output_dir = f"{ENUM_DIR}/nmap_parsed"
@@ -259,7 +263,7 @@ def invokescan(scope, exclude):
     scan_results = f"{ENUM_DIR}/*.gnmap"
     os.chdir(f"{ENUM_DIR}/nmap_parsed")
     os.system(f"{parser_path} {scan_results} --all")
-    
+
     scan_summary = f"""
 Scan Summary:
 ============
@@ -268,31 +272,31 @@ Domain Controllers: {len(domain_controllers) if 'domain_controllers' in locals()
 Scan Results: {parser_output_dir}
 """
     print_info(scan_summary)
-    
+
     with open(f"{ENUM_DIR}/scan_summary.txt", "w") as f:
         f.write(scan_summary)
-    
+
     print_success("Phase 2 complete - Port scanning finished 🔍 - TOP 1000 TCP, WEB PORTS, AND NULL BINDS (RPC, LDAP, SMB) scan complete! 🔍")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Network reconnaissance tool supporting both subnet ranges and IP lists")
     parser.add_argument("-s", "--scope", type=str, required=True,
-                    help="Scope file containing either subnet ranges (CIDR notation) or individual IP addresses")
+                        help="Scope file containing either subnet ranges (CIDR notation) or individual IP addresses")
     parser.add_argument("-e", "--exclude", type=str, required=True,
-                    help="IP address to exclude from scans (e.g., your attacking machine)")
+                        help="Either a hostspec to exclude (e.g., 10.10.10.10, 10.10.10.1-10.10.10.50) OR a path to a file to be used with --excludefile")
     return parser.parse_args()
 
 def enumerate_services():
-	print_info("Starting service-specific enumeration...")
-	os.chdir(ENUM_DIR)
+    print_info("Starting service-specific enumeration...")
+    os.chdir(ENUM_DIR)
 
-	# FTP Enumeration with standardized Nmap parameters
-	if os.path.exists(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_21-ftp.txt") and os.path.getsize(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_21-ftp.txt") > 0:
-		print_info("Enumerating FTP targets...")
-		# Create FTP scan resource script
-		ftp_resource = f"{ENUM_DIR}/ftp_scan.rc"
-		with open(ftp_resource, "w") as f:
-			f.write(f"""
+    # FTP Enumeration with standardized Nmap parameters
+    if os.path.exists(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_21-ftp.txt") and os.path.getsize(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_21-ftp.txt") > 0:
+        print_info("Enumerating FTP targets...")
+        # Create FTP scan resource script
+        ftp_resource = f"{ENUM_DIR}/ftp_scan.rc"
+        with open(ftp_resource, "w") as f:
+            f.write(f"""
 use auxiliary/scanner/ftp/anonymous
 set RHOSTS file:{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_21-ftp.txt
 set THREADS 10
@@ -302,17 +306,17 @@ run
 spool off
 exit
 """)
-		
-		# Run Metasploit FTP scan
-		print_info("Running Metasploit FTP anonymous scan...")
-		os.system(f"msfconsole -q -r {ftp_resource}")
-	# VNC Enumeration
-	if os.path.exists(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_5900-vnc.txt") and os.path.getsize(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_5900-vnc.txt") > 0:
-		print_info("Enumerating VNC targets...")
-		# Create VNC scan resource script
-		vnc_resource = f"{ENUM_DIR}/vnc_scan.rc"
-		with open(vnc_resource, "w") as f:
-			f.write(f"""
+
+        # Run Metasploit FTP scan
+        print_info("Running Metasploit FTP anonymous scan...")
+        os.system(f"msfconsole -q -r {ftp_resource}")
+    # VNC Enumeration
+    if os.path.exists(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_5900-vnc.txt") and os.path.getsize(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_5900-vnc.txt") > 0:
+        print_info("Enumerating VNC targets...")
+        # Create VNC scan resource script
+        vnc_resource = f"{ENUM_DIR}/vnc_scan.rc"
+        with open(vnc_resource, "w") as f:
+            f.write(f"""
 use auxiliary/scanner/vnc/vnc_none_auth
 set RHOSTS file:{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_5900-vnc.txt
 set THREADS 10
@@ -322,66 +326,64 @@ run
 spool off
 exit
 """)
-		
-		# Run Metasploit VNC scan
-		print_info("Running Metasploit VNC no auth scan...")
-		os.system(f"msfconsole -q -r {vnc_resource}")
 
+        # Run Metasploit VNC scan
+        print_info("Running Metasploit VNC no auth scan...")
+        os.system(f"msfconsole -q -r {vnc_resource}")
 
-	# NFS Enumeration
-	if os.path.exists(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_2049-nfs.txt") and os.path.getsize(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_2049-nfs.txt") > 0:
-		print_info("Enumerating NFS targets...")
-		with open(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_2049-nfs.txt", "r") as f:
-			nfs_hosts = [line.strip() for line in f]
-		
-		with open(f"{ENUM_DIR}/nfs_shares.txt", "w") as outfile:
-			for host in nfs_hosts:
-				print_info(f"Checking NFS mounts on {host}...")
-				try:
-					result = subprocess.run(["showmount", "-e", host], capture_output=True, text=True, timeout=30)
-					outfile.write(f"\nNFS Shares on {host}:\n")
-					outfile.write(result.stdout)
-				except subprocess.TimeoutExpired:
-					print_warning(f"Timeout while checking NFS on {host}")
-				except Exception as e:
-					print_error(f"Error checking NFS on {host}: {str(e)}")
+    # NFS Enumeration
+    if os.path.exists(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_2049-nfs.txt") and os.path.getsize(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_2049-nfs.txt") > 0:
+        print_info("Enumerating NFS targets...")
+        with open(f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_2049-nfs.txt", "r") as f:
+            nfs_hosts = [line.strip() for line in f]
 
+        with open(f"{ENUM_DIR}/nfs_shares.txt", "w") as outfile:
+            for host in nfs_hosts:
+                print_info(f"Checking NFS mounts on {host}...")
+                try:
+                    result = subprocess.run(["showmount", "-e", host], capture_output=True, text=True, timeout=30)
+                    outfile.write(f"\nNFS Shares on {host}:\n")
+                    outfile.write(result.stdout)
+                except subprocess.TimeoutExpired:
+                    print_warning(f"Timeout while checking NFS on {host}")
+                except Exception as e:
+                    print_error(f"Error checking NFS on {host}: {str(e)}")
 
-	# SNMP Enumeration
-	if os.path.exists(f"{ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt") and os.path.getsize(f"{ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt") > 0:
-		print_info("Enumerating SNMP targets...")
-		os.system(f"onesixtyone -c /usr/share/seclists/Discovery/SNMP/snmp-community-strings.txt -i {ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt > {ENUM_DIR}/snmp_communities.txt")
-		os.system(f"snmpwalk -v1 -c public $(head -n 1 {ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt) > {ENUM_DIR}/snmp_walk.txt")
+    # SNMP Enumeration
+    if os.path.exists(f"{ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt") and os.path.getsize(f"{ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt") > 0:
+        print_info("Enumerating SNMP targets...")
+        os.system(f"onesixtyone -c /usr/share/seclists/Discovery/SNMP/snmp-community-strings.txt -i {ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt > {ENUM_DIR}/snmp_communities.txt")
+        os.system(f"snmpwalk -v1 -c public $(head -n 1 {ENUM_DIR}/nmap_parsed/parse/tcp_161-snmp.txt) > {ENUM_DIR}/snmp_walk.txt")
 
-	# Web Enumeration with Nuclei
-	web_urls_file = f"{ENUM_DIR}/nmap_parsed/parse/web-urls.txt"
-	if os.path.exists(web_urls_file) and os.path.getsize(web_urls_file) > 0:
-		print_info("Running Nuclei web scans...")
-		
-		# Create output directory for Nuclei results
-		nuclei_output_dir = f"{ENUM_DIR}/nuclei_results"
-		os.makedirs(nuclei_output_dir, exist_ok=True)
-		
-		# Run Nuclei with common templates
-		nuclei_cmd = f"{TOOLS_DIR}/nuclei -l {web_urls_file} -o {nuclei_output_dir}/nuclei_scan.txt"
-		print_info("Running Nuclei vulnerability scan...")
-		os.system(nuclei_cmd)
-		
-		# Check if any results were found
-		if os.path.exists(f"{nuclei_output_dir}/nuclei_scan.txt"):
-			print_success("Nuclei scan completed - Check results in nuclei_results/nuclei_scan.txt")
-		else:
-			print_warning("No Nuclei findings")
-	print_success("Service enumeration complete! Check the enumeration directory for results.")
+    # Web Enumeration with Nuclei
+    web_urls_file = f"{ENUM_DIR}/nmap_parsed/parse/web-urls.txt"
+    if os.path.exists(web_urls_file) and os.path.getsize(web_urls_file) > 0:
+        print_info("Running Nuclei web scans...")
+
+        # Create output directory for Nuclei results
+        nuclei_output_dir = f"{ENUM_DIR}/nuclei_results"
+        os.makedirs(nuclei_output_dir, exist_ok=True)
+
+        # Run Nuclei with common templates
+        nuclei_cmd = f"{TOOLS_DIR}/nuclei -l {web_urls_file} -o {nuclei_output_dir}/nuclei_scan.txt"
+        print_info("Running Nuclei vulnerability scan...")
+        os.system(nuclei_cmd)
+
+        # Check if any results were found
+        if os.path.exists(f"{nuclei_output_dir}/nuclei_scan.txt"):
+            print_success("Nuclei scan completed - Check results in nuclei_results/nuclei_scan.txt")
+        else:
+            print_warning("No Nuclei findings")
+    print_success("Service enumeration complete! Check the enumeration directory for results.")
 
 def create_msf_resource_script(target_file, output_dir):
     """Create a Metasploit resource script for SMB scanning"""
     resource_script = f"{output_dir}/smb_scan.rc"
-    
+
     # Create module-specific output directory
     msf_output_dir = f"{output_dir}/msf_module_output"
     os.makedirs(msf_output_dir, exist_ok=True)
-    
+
     with open(resource_script, "w") as f:
         f.write(f"""
 # Set global options
@@ -435,27 +437,27 @@ exit
 def run_msf_scan(target_file, output_dir):
     """Run Metasploit SMB scans using resource script"""
     print_info("Starting Metasploit SMB and RDP vulnerability scans...")
-    
+
     # Create resource script and get output directory
     resource_script, msf_output_dir = create_msf_resource_script(target_file, output_dir)
-    
+
     # Run Metasploit with resource script
     msf_output = f"{output_dir}/msf_vulnerability_scan.txt"
     msf_cmd = f"msfconsole -q -r {resource_script} | tee {msf_output}"
-    
+
     try:
         # Check if msfconsole is available
         subprocess.run(["msfconsole", "-h"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         print_info("Running Metasploit scans (this may take a while)...")
         os.system(msf_cmd)
         print_success("Metasploit vulnerability scans completed!")
-        
+
         # Create a consolidated report from individual module outputs
         try:
             with open(f"{output_dir}/msf_consolidated_report.txt", "w") as report:
                 report.write("Metasploit Scan Consolidated Report\n")
                 report.write("================================\n\n")
-                
+
                 # List of all module output files and their descriptions
                 modules = {
                     "smb_version.txt": "SMB Version Detection",
@@ -468,23 +470,23 @@ def run_msf_scan(target_file, output_dir):
                     "smbghost_scan.txt": "SMBGhost Vulnerability Check",
                     "ms12_020_scan.txt": "MS12-020 RDP Vulnerability Check"
                 }
-                
+
                 # Process each module's output
                 for filename, description in modules.items():
                     module_file = f"{msf_output_dir}/{filename}"
                     if os.path.exists(module_file):
                         report.write(f"\n{description}\n")
                         report.write("=" * len(description) + "\n")
-                        
+
                         with open(module_file, "r") as f:
                             content = f.read().strip()
                             if content:
                                 report.write(content + "\n")
                             else:
                                 report.write("No findings\n")
-                
+
                 print_success(f"Consolidated report saved to {output_dir}/msf_consolidated_report.txt")
-                
+
             # Parse results for specific vulnerabilities
             vulnerabilities = {
                 "BlueKeep": "VULNERABLE - CVE-2019-0708",
@@ -493,11 +495,11 @@ def run_msf_scan(target_file, output_dir):
                 "MS12-020": "VULNERABLE - MS12-020",
                 "EternalBlue": "VULNERABLE - MS17-010"
             }
-            
+
             with open(f"{output_dir}/critical_vulnerabilities.txt", "w") as vuln_f:
                 vuln_f.write("Critical Vulnerabilities Found\n")
                 vuln_f.write("===========================\n\n")
-                
+
                 for module_file in os.listdir(msf_output_dir):
                     with open(f"{msf_output_dir}/{module_file}", "r") as f:
                         content = f.read()
@@ -510,10 +512,10 @@ def run_msf_scan(target_file, output_dir):
                                         ip = line.split()[0]
                                         vuln_f.write(f"  - {ip}\n")
                                         print_warning(f"Host vulnerable to {vuln_name}: {ip}")
-                
+
         except Exception as e:
             print_error(f"Error processing module outputs: {str(e)}")
-        
+
         return True, msf_output_dir
     except FileNotFoundError:
         print_warning("Metasploit not found - skipping Metasploit vulnerability scans")
@@ -521,7 +523,7 @@ def run_msf_scan(target_file, output_dir):
 
 def scan_smb_vulnerabilities():
     print_info("Starting targeted SMB vulnerability scans...")
-    
+
     # Use parsed Nmap output for SMB targets
     smb_targets = f"{ENUM_DIR}/nmap_parsed/parse/hosts/tcp_445-smb.txt"
     if not os.path.exists(smb_targets) or os.path.getsize(smb_targets) == 0:
@@ -538,7 +540,7 @@ def scan_smb_vulnerabilities():
         # Check for anonymous share access
         print_info("Checking for anonymous share access...")
         os.system(f"netexec smb {smb_targets} -u 'a' -p '' --shares > {smb_vuln_dir}/netexec_anon_shares.txt")
-        
+
         # Check for RPC null authentication
         print_info("Checking for RPC null authentication...")
         os.system(f"netexec smb {smb_targets} -u '' -p '' --users > {smb_vuln_dir}/netexec_null_users.txt")
@@ -561,7 +563,7 @@ def scan_smb_vulnerabilities():
     for scripts in smb_scripts:
         script_name = scripts.split(',')[0]  # Use first script name for file naming
         print_info(f"Running {script_name} and related checks...")
-        
+
         try:
             scan_cmd = f"nmap {NMAP_COMMON} -p445 --open --script={scripts} -oA {smb_vuln_dir}/smb_vuln_{script_name} -iL {smb_targets}"
             subprocess.run(scan_cmd, shell=True, check=True)
@@ -574,34 +576,34 @@ def scan_smb_vulnerabilities():
 
     # Parse results for vulnerable hosts
     print_info("Analyzing scan results...")
-    
+
     try:
         # Create summary report
         with open(f"{smb_vuln_dir}/smb_vulnerability_summary.txt", "w") as summary:
             summary.write("SMB Vulnerability Scan Summary\n")
             summary.write("============================\n\n")
-            
+
             # Process NSE script results
             for scripts in smb_scripts:
                 script_name = scripts.split(',')[0]
                 nmap_file = f"{smb_vuln_dir}/smb_vuln_{script_name}.nmap"
-                
+
                 if os.path.exists(nmap_file):
                     with open(nmap_file, "r") as f:
                         content = f.read()
                         summary.write(f"\n{script_name} Results:\n")
                         summary.write("=" * (len(script_name) + 9) + "\n")
-                        
+
                         # Extract relevant findings
                         for line in content.splitlines():
                             if any(x in line.lower() for x in ["vulnerable", "warning", "critical", "exposed"]):
                                 summary.write(f"{line}\n")
-            
+
             # Add Metasploit results if available
             if msf_success and msf_output_dir:
                 summary.write("\nMetasploit Scan Results\n")
                 summary.write("=====================\n")
-                
+
                 # Process each module's output
                 for module_file in os.listdir(msf_output_dir):
                     if module_file.endswith(".txt"):
@@ -612,12 +614,12 @@ def scan_smb_vulnerabilities():
                                 summary.write(content + "\n")
 
         print_success(f"Vulnerability summary saved to {smb_vuln_dir}/smb_vulnerability_summary.txt")
-        
+
         # Create critical vulnerabilities report
         with open(f"{smb_vuln_dir}/critical_vulnerabilities.txt", "w") as vuln_f:
             vuln_f.write("Critical SMB Vulnerabilities Found\n")
             vuln_f.write("==============================\n\n")
-            
+
             vulnerabilities = {
                 "MS17-010": "VULNERABLE - MS17-010",
                 "DoublePulsar": "VULNERABLE - DOUBLEPULSAR",
@@ -625,10 +627,10 @@ def scan_smb_vulnerabilities():
                 "Unsigned SMB": "Message signing disabled",
                 "Anonymous Access": "Anonymous access allowed"
             }
-            
+
             for vuln_name, vuln_string in vulnerabilities.items():
                 found_hosts = set()
-                
+
                 # Check both NSE and Metasploit results
                 for root, _, files in os.walk(smb_vuln_dir):
                     for file in files:
@@ -646,7 +648,7 @@ def scan_smb_vulnerabilities():
                             except Exception as e:
                                 print_error(f"Error processing {file}: {str(e)}")
                                 continue
-                
+
                 if found_hosts:
                     vuln_f.write(f"\n{vuln_name} Vulnerable Hosts:\n")
                     for host in sorted(found_hosts):
@@ -654,7 +656,7 @@ def scan_smb_vulnerabilities():
                         print_warning(f"Host {host} vulnerable to {vuln_name}")
 
         print_success("SMB vulnerability scanning complete! 🎯")
-        
+
     except Exception as e:
         print_error(f"Error creating vulnerability reports: {str(e)}")
         return False
@@ -662,17 +664,17 @@ def scan_smb_vulnerabilities():
     return True
 
 def main():
-	args = parse_args()
-	scope = args.scope
-	exclude = args.exclude
-	
-	printBanner()
-	makedir()
-	downloadtooling([])
-	invokescan(scope, exclude)
-	enumerate_services()
-	scan_smb_vulnerabilities()
-	print_success("All tasks completed successfully! ✅")
+    args = parse_args()
+    scope = args.scope
+    exclude = args.exclude
+
+    printBanner()
+    makedir()
+    downloadtooling([])
+    invokescan(scope, exclude)
+    enumerate_services()
+    scan_smb_vulnerabilities()
+    print_success("All tasks completed successfully! ✅")
 
 if __name__ == '__main__':
-	main()
+    main()
