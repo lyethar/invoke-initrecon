@@ -14,7 +14,7 @@ spool ssh_login_out
 run
 spool off
 
-auxiliary/scanner/vnc/vnc_login
+use auxiliary/scanner/vnc/vnc_login
 set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_5900-vnc.txt
 set BRUTEFORCE_SPEED 3
 set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/vnc-betterdefaultpasslist.txt
@@ -22,7 +22,7 @@ spool vnc_login_out
 run
 spool off
 
-auxiliary/scanner/mssql/mssql_login
+use auxiliary/scanner/mssql/mssql_login
 set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_1433-mssql.txt
 set BRUTEFORCE_SPEED 3
 set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/mssql-betterdefaultpasslist.txt
@@ -30,16 +30,15 @@ spool mssql_login_out
 run
 spool off
 
-auxiliary/scanner/postgres/postgres_login
+use auxiliary/scanner/postgres/postgres_login
 set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_5432-postgres.txt
 set BRUTEFORCE_SPEED 3
 set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/postgres-betterdefaultpasslist.txt
 spool postgres_login_out
 run
-spool 
+spool off
 
-
-auxiliary/scanner/mysql/mysql_login
+use auxiliary/scanner/mysql/mysql_login
 set RHOSTS file:/opt/initrecon/enumeration/nmap_parsed/parse/hosts/tcp_3306-mysql.txt
 set BRUTEFORCE_SPEED 3
 set USERPASS_FILE /opt/initrecon/tools/ftp/SecLists/Passwords/Default-Credentials/mysql-betterdefaultpasslist.txt
