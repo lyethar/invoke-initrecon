@@ -2,69 +2,49 @@ import os
 import re
 import subprocess
 
+
 def get_nmap_targets():
     """
-    Parses files in the current directory with the format 'tcp_<port>-<service>.txt'
+    Parses files in the current directory matching 'tcp_<port>-<service>.txt'
     and returns a list of (port, filename) tuples.
     """
-    files = os.listdir(".")
-    pattern = re.compile(r"tcp_(\d+)-[\w\d]+\.txt")  # Regex to match the expected file format
-    
+    pattern = re.compile(r"tcp_(\d+)-[\w\d]+\.txt")
     targets = []
-    for file in files:
-        match = pattern.match(file)
+    for fname in os.listdir("."):
+        match = pattern.match(fname)
         if match:
-            port = match.group(1)
-            targets.append((port, file))
-    
+            targets.append((match.group(1), fname))
     return targets
 
-def run_nmap_service_scan():
-    """
-    Runs nmap scan for each parsed target file.
-    """
-    targets = get_nmap_targets()
-    
+
+def _run_nmap(extra_args, targets, label):
     if not targets:
         print("No valid target files found.")
         return
 
     for port, filename in targets:
-        output_file = f"service_output_{port}"
-        cmd = [
-            "nmap", "-Pn", "-n", "-sV", "-p", port,
-            "-iL", filename, "-oA", output_file
-        ]
+        output_file = f"{label}_output_{port}"
+        cmd = ["nmap", "-Pn", "-n"] + extra_args + ["-p", port, "-iL", filename, "-oA", output_file]
         print(f"Running: {' '.join(cmd)}")
-        
         try:
             subprocess.run(cmd, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Error running Nmap for {filename}: {e}")
+        except subprocess.CalledProcessError as exc:
+            print(f"Error running nmap for {filename}: {exc}")
 
-def run_nmap_script_scan():
-    """
-    Runs nmap scan for each parsed target file.
-    """
-    targets = get_nmap_targets()
-    
-    if not targets:
-        print("No valid target files found.")
-        return
 
-    for port, filename in targets:
-        output_file = f"script_output_{port}"
-        cmd = [
-            "nmap", "-Pn", "-n", "-sC", "-p", port,
-            "-iL", filename, "-oA", output_file
-        ]
-        print(f"Running: {' '.join(cmd)}")
-        
-        try:
-            subprocess.run(cmd, check=True)
-        except subprocess.CalledProcessError as e:
-            print(f"Error running Nmap for {filename}: {e}")
+def run_nmap_service_scan(targets=None):
+    if targets is None:
+        targets = get_nmap_targets()
+    _run_nmap(["-sV"], targets, "service")
+
+
+def run_nmap_script_scan(targets=None):
+    if targets is None:
+        targets = get_nmap_targets()
+    _run_nmap(["-sC"], targets, "script")
+
 
 if __name__ == "__main__":
-    run_nmap_service_scan()
-    run_nmap_script_scan()
+    targets = get_nmap_targets()
+    run_nmap_service_scan(targets)
+    run_nmap_script_scan(targets)
